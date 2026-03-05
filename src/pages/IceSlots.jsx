@@ -16,6 +16,10 @@ export default function IceSlots() {
 
   const [bulkMode, setBulkMode] = useState(false);
   const [bulkForm, setBulkForm] = useState({ arena_id: "", start_date: "", end_date: "", days_of_week: [], start_time: "", end_time: "", season: "2025-2026" });
+  const [showCsvImport, setShowCsvImport] = useState(false);
+  const [csvFile, setCsvFile] = useState(null);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvResult, setCsvResult] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
 

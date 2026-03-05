@@ -15,6 +15,10 @@ export default function TeamsAndDivisions() {
 
   const [divForm, setDivForm] = useState({ name: "", level: "", season: "2025-2026", games_per_team: 30 });
   const [teamForm, setTeamForm] = useState({ name: "", manager_name: "", manager_email: "", manager_phone: "", season: "2025-2026" });
+  const [showImport, setShowImport] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
 
