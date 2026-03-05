@@ -148,6 +148,9 @@ export default function IceSlots() {
           <p className="text-gray-400 text-sm mt-1">{arenas.length} arenas · {slots.length} total slots</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); }} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Upload className="w-4 h-4" /> Import CSV
+          </button>
           <button onClick={() => setShowArenaForm(true)} className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus className="w-4 h-4" /> Arena
           </button>

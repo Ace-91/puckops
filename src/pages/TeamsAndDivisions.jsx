@@ -133,10 +133,16 @@ export default function TeamsAndDivisions() {
           <h1 className="text-2xl font-bold text-white">Teams & Divisions</h1>
           <p className="text-gray-400 text-sm mt-1">{divisions.length} divisions · {teams.length} teams</p>
         </div>
-        <button onClick={() => { setEditingDiv(null); setDivForm({ name: "", level: "", season: "2025-2026", games_per_team: 30 }); setShowDivForm(true); }}
-          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          <Plus className="w-4 h-4" /> Add Division
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => { setShowImport(true); setImportResult(null); setImportFile(null); }}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Upload className="w-4 h-4" /> Import CSV
+          </button>
+          <button onClick={() => { setEditingDiv(null); setDivForm({ name: "", level: "", season: "2025-2026", games_per_team: 30 }); setShowDivForm(true); }}
+            className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Plus className="w-4 h-4" /> Add Division
+          </button>
+        </div>
       </div>
 
       {loading ? (
