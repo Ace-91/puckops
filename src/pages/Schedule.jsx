@@ -41,6 +41,20 @@ export default function Schedule() {
     (!search || g.home_team_name?.toLowerCase().includes(search.toLowerCase()) || g.away_team_name?.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const exportCSV = () => {
+    const headers = ["Date", "Start Time", "Division", "Home Team", "Away Team", "Arena", "Type", "Status", "Referee 1", "Referee 2", "Timekeeper", "Late Game"];
+    const rows = filtered.map(g => [
+      g.date, g.start_time, g.division_name, g.home_team_name, g.away_team_name,
+      g.arena_name, g.game_type, g.status, g.referee1_name || "", g.referee2_name || "",
+      g.timekeeper_name || "", g.is_late_game ? "Yes" : "No"
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v||"").replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `schedule_export_${new Date().toISOString().split("T")[0]}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const statusColors = {
     scheduled: "bg-green-500/10 text-green-400",
     forfeited: "bg-red-500/10 text-red-400",
@@ -69,6 +83,9 @@ export default function Schedule() {
           <p className="text-gray-400 text-sm mt-1">{filtered.length} games</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={exportCSV} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
           <button onClick={() => setViewMode("list")} className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === "list" ? "bg-sky-500 text-white" : "bg-[#1e2533] text-gray-400 border border-gray-700"}`}>List</button>
           <button onClick={() => setViewMode("calendar")} className={`px-3 py-1.5 rounded-lg text-sm ${viewMode === "calendar" ? "bg-sky-500 text-white" : "bg-[#1e2533] text-gray-400 border border-gray-700"}`}>Calendar</button>
         </div>
