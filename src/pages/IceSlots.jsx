@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, Clock, MapPin, X, Moon } from "lucide-react";
+import { Plus, Trash2, Clock, MapPin, X, Moon, Upload } from "lucide-react";
 
 export default function IceSlots() {
   const [arenas, setArenas] = useState([]);

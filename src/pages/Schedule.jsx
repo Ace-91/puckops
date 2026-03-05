@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Calendar, Moon, Filter, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Calendar, Moon, Filter, ChevronLeft, ChevronRight, Search, Download } from "lucide-react";
 
 export default function Schedule() {
   const [games, setGames] = useState([]);
