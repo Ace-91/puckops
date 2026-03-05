@@ -229,6 +229,43 @@ export default function IceSlots() {
         </div>
       )}
 
+      {/* CSV Import Modal */}
+      {showCsvImport && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e2533] rounded-xl border border-gray-700 p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Import Ice Slots from CSV</h2>
+              <button onClick={() => setShowCsvImport(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg p-3 mb-4 text-xs text-sky-300">
+              Upload a CSV with columns: <strong>arena_name, date (YYYY-MM-DD), start_time (HH:MM), end_time (HH:MM), season</strong>. Arenas must already exist in the system.
+            </div>
+            <button onClick={downloadSlotsTemplate} className="flex items-center gap-2 text-sm text-sky-400 hover:text-sky-300 mb-4 underline">
+              <span>↓</span> Download template CSV
+            </button>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">CSV File *</label>
+                <input type="file" accept=".csv" className="w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:text-sm file:cursor-pointer cursor-pointer"
+                  onChange={e => setCsvFile(e.target.files[0])} />
+              </div>
+              {csvResult && (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm text-green-300">
+                  ✓ {csvResult.created} slots imported, {csvResult.skipped} skipped.
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowCsvImport(false)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Close</button>
+              <button onClick={handleCsvImport} disabled={!csvFile || csvImporting}
+                className="flex-1 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 rounded-lg text-white text-sm font-medium">
+                {csvImporting ? "Importing..." : "Import"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Arena Modal */}
       {showArenaForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">

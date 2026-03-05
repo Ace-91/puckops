@@ -209,6 +209,44 @@ export default function TeamsAndDivisions() {
         </div>
       )}
 
+      {/* Import CSV Modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e2533] rounded-xl border border-gray-700 p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Bulk Import Teams</h2>
+              <button onClick={() => setShowImport(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg p-3 mb-4 text-xs text-sky-300">
+              Upload a CSV with columns: <strong>division_name, team_name, manager_name, manager_email, manager_phone, season</strong>. Divisions will be created automatically if they don't exist.
+            </div>
+            <button onClick={downloadTemplate} className="flex items-center gap-2 text-sm text-sky-400 hover:text-sky-300 mb-4 underline">
+              <Download className="w-4 h-4" /> Download template CSV
+            </button>
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">CSV File *</label>
+                <input type="file" accept=".csv" className="w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-sky-500 file:text-white file:text-sm file:cursor-pointer cursor-pointer"
+                  onChange={e => setImportFile(e.target.files[0])} />
+              </div>
+              {importResult && (
+                <div className={`rounded-lg p-3 text-sm ${importResult.errors?.length ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-300" : "bg-green-500/10 border border-green-500/20 text-green-300"}`}>
+                  ✓ {importResult.created} teams imported, {importResult.skipped} skipped.
+                  {importResult.errors?.length > 0 && <div className="mt-1 text-xs">{importResult.errors.slice(0,3).join(", ")}</div>}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowImport(false)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Close</button>
+              <button onClick={handleImportCSV} disabled={!importFile || importing}
+                className="flex-1 py-2 bg-green-500 hover:bg-green-600 disabled:opacity-50 rounded-lg text-white text-sm font-medium">
+                {importing ? "Importing..." : "Import"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Division Modal */}
       {showDivForm && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
