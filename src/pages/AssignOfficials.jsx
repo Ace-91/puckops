@@ -60,7 +60,8 @@ export default function AssignOfficials() {
   const refs = officials.filter(o => o.role === "referee");
   const tks = officials.filter(o => o.role === "timekeeper");
 
-  const OfficialSelect = ({ game, field, officials: pool, label, icon: Icon }) => {
+  const OfficialSelect = ({ game, field, officials: pool, label, icon: IconComp }) => {
+    const Icon = IconComp;
     const currentId = game[field];
     const currentName = game[`${field.replace("_id","_name")}`];
     return (
