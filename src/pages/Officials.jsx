@@ -1,0 +1,206 @@
+import { useState, useEffect } from "react";
+import { base44 } from "@/api/base44Client";
+import { Plus, X, Pencil, Trash2, Shield, Clock } from "lucide-react";
+
+const emptyForm = { full_name: "", user_email: "", phone: "", role: "referee", certification_level: "level2", preferred_divisions: [], max_games_per_week: 5, notes: "", is_active: true };
+
+export default function Officials() {
+  const [officials, setOfficials] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(emptyForm);
+  const [filterRole, setFilterRole] = useState("all");
+
+  useEffect(() => {
+    const load = async () => {
+      const [o, d] = await Promise.all([base44.entities.Official.list(), base44.entities.Division.list()]);
+      setOfficials(o);
+      setDivisions(d);
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const save = async () => {
+    if (editing) {
+      await base44.entities.Official.update(editing.id, form);
+    } else {
+      await base44.entities.Official.create(form);
+    }
+    setShowForm(false); setEditing(null); setForm(emptyForm);
+    const o = await base44.entities.Official.list();
+    setOfficials(o);
+  };
+
+  const del = async (id) => {
+    if (!confirm("Delete this official?")) return;
+    await base44.entities.Official.delete(id);
+    const o = await base44.entities.Official.list();
+    setOfficials(o);
+  };
+
+  const openEdit = (official) => {
+    setEditing(official);
+    setForm({ ...emptyForm, ...official, preferred_divisions: official.preferred_divisions || [] });
+    setShowForm(true);
+  };
+
+  const toggleDiv = (divId) => {
+    setForm(f => ({
+      ...f,
+      preferred_divisions: f.preferred_divisions.includes(divId)
+        ? f.preferred_divisions.filter(d => d !== divId)
+        : [...f.preferred_divisions, divId]
+    }));
+  };
+
+  const filtered = officials.filter(o => filterRole === "all" || o.role === filterRole);
+  const refs = officials.filter(o => o.role === "referee");
+  const tks = officials.filter(o => o.role === "timekeeper");
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Officials</h1>
+          <p className="text-gray-400 text-sm mt-1">{refs.length} referees · {tks.length} timekeepers</p>
+        </div>
+        <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }}
+          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <Plus className="w-4 h-4" /> Add Official
+        </button>
+      </div>
+
+      <div className="flex gap-3 mb-4">
+        {["all", "referee", "timekeeper"].map(r => (
+          <button key={r} onClick={() => setFilterRole(r)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${filterRole === r ? "bg-sky-500 text-white" : "bg-[#1e2533] text-gray-400 border border-gray-700 hover:border-sky-500"}`}>
+            {r === "all" ? "All" : r === "referee" ? `Referees (${refs.length})` : `Timekeepers (${tks.length})`}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => <div key={i} className="bg-[#1e2533] rounded-xl h-36 animate-pulse" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map(o => (
+            <div key={o.id} className="bg-[#1e2533] rounded-xl border border-gray-800 p-4 hover:border-sky-500/30 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${o.role === "referee" ? "bg-purple-500/10" : "bg-sky-500/10"}`}>
+                    {o.role === "referee" ? <Shield className="w-5 h-5 text-purple-400" /> : <Clock className="w-5 h-5 text-sky-400" />}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white text-sm">{o.full_name}</div>
+                    <div className="text-xs text-gray-400 capitalize">{o.role} · {o.certification_level}</div>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(o)} className="p-1 text-gray-400 hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => del(o.id)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
+              {o.user_email && <div className="text-xs text-gray-500 mb-1">{o.user_email}</div>}
+              {o.phone && <div className="text-xs text-gray-500 mb-2">{o.phone}</div>}
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Max {o.max_games_per_week}/week</span>
+                <span className={`px-2 py-0.5 rounded-full ${o.is_active ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}`}>
+                  {o.is_active ? "Active" : "Inactive"}
+                </span>
+              </div>
+              {o.preferred_divisions?.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {o.preferred_divisions.map(divId => {
+                    const d = divisions.find(x => x.id === divId);
+                    return d ? <span key={divId} className="text-xs bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded">{d.name}</span> : null;
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
+          {filtered.length === 0 && (
+            <div className="col-span-3 text-center py-12 text-gray-500">
+              <Shield className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p>No officials found.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showForm && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e2533] rounded-xl border border-gray-700 p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">{editing ? "Edit Official" : "Add Official"}</h2>
+              <button onClick={() => setShowForm(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: "full_name", label: "Full Name *", type: "text" },
+                { key: "user_email", label: "Login Email", type: "email" },
+                { key: "phone", label: "Phone", type: "tel" },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-sm text-gray-400 block mb-1">{f.label}</label>
+                  <input type={f.type} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                    value={form[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} />
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">Role</label>
+                  <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                    value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
+                    <option value="referee">Referee</option>
+                    <option value="timekeeper">Timekeeper</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">Certification Level</label>
+                  <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                    value={form.certification_level} onChange={e => setForm(f => ({ ...f, certification_level: e.target.value }))}>
+                    {["level1","level2","level3","level4","level5"].map(l => <option key={l} value={l}>{l.replace("level","Level ")}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Max Games Per Week</label>
+                <input type="number" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  value={form.max_games_per_week} onChange={e => setForm(f => ({ ...f, max_games_per_week: Number(e.target.value) }))} />
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Preferred Divisions</label>
+                <div className="flex flex-wrap gap-2">
+                  {divisions.map(d => (
+                    <button key={d.id} type="button" onClick={() => toggleDiv(d.id)}
+                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${form.preferred_divisions?.includes(d.id) ? "bg-sky-500 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                      {d.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Notes</label>
+                <textarea className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500 h-16 resize-none"
+                  value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="accent-sky-500" />
+                <label htmlFor="active" className="text-sm text-gray-300">Active</label>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Cancel</button>
+              <button onClick={save} className="flex-1 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg text-white text-sm font-medium">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -47,8 +47,34 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import Dashboard from './pages/Dashboard';
+import TeamsAndDivisions from './pages/TeamsAndDivisions';
+import IceSlots from './pages/IceSlots';
+import Schedule from './pages/Schedule';
+import ScheduleBuilder from './pages/ScheduleBuilder';
+import BlackoutDates from './pages/BlackoutDates';
+import Officials from './pages/Officials';
+import OfficialAvailability from './pages/OfficialAvailability';
+import AssignOfficials from './pages/AssignOfficials';
+import Forfeits from './pages/Forfeits';
+import __Layout from './Layout.jsx';
 
-export const pagesConfig = {
-	Pages: {}
+
+export const PAGES = {
+    "Dashboard": Dashboard,
+    "TeamsAndDivisions": TeamsAndDivisions,
+    "IceSlots": IceSlots,
+    "Schedule": Schedule,
+    "ScheduleBuilder": ScheduleBuilder,
+    "BlackoutDates": BlackoutDates,
+    "Officials": Officials,
+    "OfficialAvailability": OfficialAvailability,
+    "AssignOfficials": AssignOfficials,
+    "Forfeits": Forfeits,
 }
 
+export const pagesConfig = {
+    mainPage: "Dashboard",
+    Pages: PAGES,
+    Layout: __Layout,
+};
