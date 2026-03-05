@@ -23,6 +23,48 @@ export default function IceSlots() {
 
   useEffect(() => { loadAll(); }, []);
 
+  const downloadSlotsTemplate = () => {
+    const csv = "arena_name,date,start_time,end_time,season\nArena 1,2025-10-01,19:00,20:30,2025-2026\nArena 1,2025-10-01,22:30,00:00,2025-2026";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "iceslots_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvFile) return;
+    setCsvImporting(true);
+    setCsvResult(null);
+    const text = await csvFile.text();
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
+    let created = 0, skipped = 0;
+    const slotsToCreate = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map(c => c.trim());
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
+      if (!row.date || !row.start_time) { skipped++; continue; }
+      const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
+      slotsToCreate.push({
+        arena_id: arena?.id || "",
+        arena_name: arena?.name || row.arena_name || "",
+        date: row.date,
+        start_time: row.start_time,
+        end_time: row.end_time || "",
+        season: row.season || "2025-2026",
+        is_late_game: isLate(row.start_time),
+        is_available: true,
+      });
+      created++;
+    }
+    if (slotsToCreate.length > 0) await base44.entities.IceSlot.bulkCreate(slotsToCreate);
+    setCsvResult({ created, skipped });
+    setCsvImporting(false);
+    loadAll();
+  };
+
   const loadAll = async () => {
     setLoading(true);
     const [a, s] = await Promise.all([base44.entities.Arena.list(), base44.entities.IceSlot.list("-date", 500)]);

@@ -22,6 +22,53 @@ export default function TeamsAndDivisions() {
 
   useEffect(() => { loadAll(); }, []);
 
+  const downloadTemplate = () => {
+    const csv = "division_name,team_name,manager_name,manager_email,manager_phone,season\nDivision AA,Thunder Hawks,John Smith,john@email.com,555-1234,2025-2026\nDivision AA,Ice Wolves,Jane Doe,jane@email.com,555-5678,2025-2026";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "teams_template.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportCSV = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    setImportResult(null);
+    const text = await importFile.text();
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
+    let created = 0, skipped = 0, errors = [];
+    const currentDivs = [...divisions];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",").map(c => c.trim());
+      const row = {};
+      headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
+      if (!row.team_name) { skipped++; continue; }
+      try {
+        // Find or create division
+        let div = currentDivs.find(d => d.name.toLowerCase() === row.division_name?.toLowerCase());
+        if (!div && row.division_name) {
+          div = await base44.entities.Division.create({ name: row.division_name, season: row.season || "2025-2026", games_per_team: 30 });
+          currentDivs.push(div);
+        }
+        await base44.entities.Team.create({
+          name: row.team_name,
+          division_id: div?.id || "",
+          division_name: div?.name || row.division_name || "",
+          manager_name: row.manager_name || "",
+          manager_email: row.manager_email || "",
+          manager_phone: row.manager_phone || "",
+          season: row.season || "2025-2026",
+        });
+        created++;
+      } catch(e) { errors.push(`Row ${i}: ${e.message}`); }
+    }
+    setImportResult({ created, skipped, errors });
+    setImporting(false);
+    loadAll();
+  };
+
   const loadAll = async () => {
     setLoading(true);
     const [d, t] = await Promise.all([base44.entities.Division.list(), base44.entities.Team.list()]);
