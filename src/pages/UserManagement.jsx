@@ -221,21 +221,31 @@ export default function UserManagement() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-600">{u.created_date?.split("T")[0]}</td>
                   <td className="px-4 py-3 text-right">
-                    {editingId === u.id ? (
-                      <div className="flex gap-1 justify-end">
-                        <button onClick={() => saveRole(u.id)} disabled={saving} className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10">
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-700">
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => { setEditingId(u.id); setEditRole(u.role || "team_manager"); }}
-                        className="p-1.5 text-gray-600 hover:text-white rounded-lg hover:bg-white/5">
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                   {editingId === u.id ? (
+                     <div className="flex gap-1 justify-end">
+                       <button onClick={() => saveRole(u.id)} disabled={saving} className="p-1.5 rounded-lg text-green-400 hover:bg-green-500/10">
+                         <Check className="w-3.5 h-3.5" />
+                       </button>
+                       <button onClick={() => setEditingId(null)} className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-700">
+                         <X className="w-3.5 h-3.5" />
+                       </button>
+                     </div>
+                   ) : (
+                     <div className="flex gap-1 justify-end items-center">
+                       <button
+                         onClick={() => sendPasswordReset(u.id, u.email)}
+                         disabled={resetSent[u.id] === "sending"}
+                         title="Send password reset email"
+                         className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors ${resetSent[u.id] === "sent" ? "text-green-400" : "text-gray-600 hover:text-yellow-400 hover:bg-yellow-500/10"}`}>
+                         <KeyRound className="w-3.5 h-3.5" />
+                         {resetSent[u.id] === "sending" ? "…" : resetSent[u.id] === "sent" ? "Sent!" : "Reset"}
+                       </button>
+                       <button onClick={() => { setEditingId(u.id); setEditRole(u.role || "team_manager"); }}
+                         className="p-1.5 text-gray-600 hover:text-white rounded-lg hover:bg-white/5">
+                         <Pencil className="w-3.5 h-3.5" />
+                       </button>
+                     </div>
+                   )}
                   </td>
                 </tr>
               ))}
