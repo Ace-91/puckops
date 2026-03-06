@@ -113,6 +113,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {deleteProgress && <ProgressModal title={deleteProgress.title} current={deleteProgress.current} total={deleteProgress.total} />}
 
       {/* Hero / Landing Section */}
       <div className="rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #111 50%, #0d0d0d 100%)", border: "1px solid #2a2a2a" }}>
