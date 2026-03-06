@@ -32,6 +32,7 @@ export default function UserManagement() {
   const [inviting, setInviting] = useState(false);
   const [inviteResult, setInviteResult] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
+  const [resetSent, setResetSent] = useState({}); // { [userId]: "sending" | "sent" | "error" }
 
   const load = async () => {
     setLoading(true);
