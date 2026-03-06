@@ -22,12 +22,13 @@ export default function AssignOfficials() {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
     const [g, o, a, d] = await Promise.all([
-      base44.entities.Game.filter({ status: "scheduled" }),
+      base44.entities.Game.list("date", 2000),
       base44.entities.Official.filter({ is_active: true }),
       base44.entities.OfficialAvailability.list(),
       base44.entities.Division.list(),
     ]);
-    const upcoming = g.filter(game => game.date >= today)
+    const upcoming = g
+      .filter(game => game.date >= today && game.status !== "forfeited" && game.status !== "completed")
       .sort((a, b) => a.date.localeCompare(b.date) || a.start_time.localeCompare(b.start_time));
     setGames(upcoming);
     setOfficials(o);
