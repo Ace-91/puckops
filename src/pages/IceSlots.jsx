@@ -381,8 +381,14 @@ export default function IceSlots() {
                   <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1">
                     {!slot.is_available && (
                       <button onClick={async () => {
-                        const linkedGame = games.find(g => g.ice_slot_id === slot.id);
-                        if (linkedGame) await base44.entities.Game.update(linkedGame.id, { ice_slot_id: "" });
+                        // Find linked games by slot id OR by arena+date+time match
+                        const linkedGames = games.filter(g =>
+                          g.ice_slot_id === slot.id ||
+                          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+                        );
+                        for (const g of linkedGames) {
+                          await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+                        }
                         await base44.entities.IceSlot.update(slot.id, { is_available: true });
                         setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, is_available: true } : s));
                       }} className="p-1 text-gray-600 hover:text-yellow-400" title="Mark as available">
