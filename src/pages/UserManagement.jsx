@@ -55,6 +55,13 @@ export default function UserManagement() {
     setSaving(false);
   };
 
+  const sendPasswordReset = async (userId, email) => {
+    setResetSent(prev => ({ ...prev, [userId]: "sending" }));
+    await base44.auth.resetPasswordRequest(email);
+    setResetSent(prev => ({ ...prev, [userId]: "sent" }));
+    setTimeout(() => setResetSent(prev => ({ ...prev, [userId]: null })), 4000);
+  };
+
   const inviteUser = async () => {
     if (!inviteEmail) return;
     setInviting(true);
