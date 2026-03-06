@@ -85,11 +85,12 @@ export default function Schedule() {
   const runDelete = async (ids, title) => {
     cancelRef.current = false;
     setProgress({ title, current: 0, total: ids.length });
-    for (let i = 0; i < ids.length; i++) {
+    for (let i = 0; i < ids.length; i += 5) {
       if (cancelRef.current) break;
-      await base44.entities.Game.delete(ids[i]);
-      setProgress({ title, current: i + 1, total: ids.length });
-      if (i < ids.length - 1) await new Promise(r => setTimeout(r, 280));
+      const chunk = ids.slice(i, i + 5);
+      await Promise.all(chunk.map(id => base44.entities.Game.delete(id)));
+      setProgress({ title, current: Math.min(i + 5, ids.length), total: ids.length });
+      if (i + 5 < ids.length) await new Promise(r => setTimeout(r, 150));
     }
     setProgress(null);
   };
