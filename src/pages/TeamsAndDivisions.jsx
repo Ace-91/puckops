@@ -308,7 +308,7 @@ export default function TeamsAndDivisions() {
               </div>
             );
           })}
-          {divisions.length === 0 && (
+          {divisions.length === 0 && teams.filter(t => !t.division_id).length === 0 && (
             <div className="text-center py-16 text-gray-500">
               <Users className="w-12 h-12 mx-auto mb-3 opacity-30" />
               <p>No divisions yet. Add your first division above.</p>
