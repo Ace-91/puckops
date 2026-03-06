@@ -199,10 +199,50 @@ export default function TeamsAndDivisions() {
         </div>
       </div>
 
+      {/* Warning: teams missing a division */}
+      {!loading && teams.some(t => !t.division_id) && (
+        <div className="mb-4 rounded-xl p-4 border flex items-start gap-3" style={{ background: "#1a1000", borderColor: "#d4af3740" }}>
+          <span className="text-yellow-400 text-lg shrink-0">⚠</span>
+          <div>
+            <div className="text-sm font-semibold text-yellow-400">Teams missing a division</div>
+            <div className="text-xs text-yellow-300/70 mt-1">
+              The following teams have no division assigned (their division was deleted):&nbsp;
+              <strong>{teams.filter(t => !t.division_id).map(t => t.name).join(", ")}</strong>.
+              Please edit each team to assign them to a division or delete them.
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="bg-[#1e2533] rounded-xl h-16 animate-pulse" />)}</div>
       ) : (
         <div className="space-y-4">
+          {/* Unassigned teams section */}
+          {teams.some(t => !t.division_id) && (
+            <div className="rounded-xl border" style={{ background: "#111", borderColor: "#d4af3730" }}>
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-yellow-400">⚠</span>
+                  <span className="font-semibold text-yellow-400">Unassigned Teams ({teams.filter(t => !t.division_id).length})</span>
+                </div>
+              </div>
+              <div className="border-t p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3" style={{ borderColor: "#222" }}>
+                {teams.filter(t => !t.division_id).map(team => (
+                  <div key={team.id} className="rounded-lg p-3 flex items-center justify-between border" style={{ background: "#1a1000", borderColor: "#d4af3720" }}>
+                    <div>
+                      <div className="text-sm font-medium text-white">{team.name}</div>
+                      <div className="text-xs text-yellow-600">No division assigned</div>
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openEditTeam(team)} className="p-1 text-gray-400 hover:text-white"><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => deleteTeam(team.id)} className="p-1 text-gray-400 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {divisions.map(div => {
             const divTeams = teams.filter(t => t.division_id === div.id);
             const isExpanded = expanded[div.id];
