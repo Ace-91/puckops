@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { LogIn, UserPlus, Calendar, Shield, Users, Clock, AlertTriangle, ChevronRight, CheckCircle } from "lucide-react";
+import { LogIn, UserPlus, Calendar, Shield, Users, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
 const SILVER = "#c0c0c0";
 const GOLD = "#d4af37";
@@ -24,56 +25,38 @@ const NEWS = [
 
 export default function Home() {
   const [user, setUser] = useState(null);
-  const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-    Promise.all([
-      base44.entities.Team.list(),
-      base44.entities.Game.list("date", 100),
-      base44.entities.Official.list(),
-    ]).then(([teams, games, officials]) => {
-      setStats({ teams: teams.length, games: games.length, officials: officials.length });
+    base44.auth.me().then(u => {
+      setUser(u);
+      // If already logged in, redirect to dashboard
+      if (u) window.location.href = createPageUrl("Dashboard");
     }).catch(() => {});
   }, []);
+
+  // While checking auth, show nothing to avoid flash
+  if (user) return null;
 
   return (
     <div className="min-h-screen" style={{ background: "#000" }}>
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b" style={{ background: "#0a0a0a", borderColor: "#1a1a1a" }}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xl" style={{ background: `linear-gradient(135deg, ${GOLD}, ${SILVER})` }}>🏒</div>
+          <div className="flex items-center gap-3">
+            <HockeyOpsLogo size={38} />
             <span className="text-xl font-black"><span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span></span>
           </div>
           <div className="flex items-center gap-3">
-            {user ? (
-              <>
-                <Link to={createPageUrl("Dashboard")}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
-                  style={{ borderColor: SILVER, color: SILVER }}>
-                  Dashboard
-                </Link>
-                <Link to={createPageUrl("Schedule")}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-black"
-                  style={{ background: SILVER }}>
-                  View Schedule
-                </Link>
-              </>
-            ) : (
-              <>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
-                  style={{ borderColor: SILVER, color: SILVER }}>
-                  <LogIn className="w-4 h-4 inline mr-1.5" />Sign In
-                </button>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-black"
-                  style={{ background: `linear-gradient(135deg, ${GOLD}, ${SILVER})` }}>
-                  <UserPlus className="w-4 h-4 inline mr-1.5" />Register
-                </button>
-              </>
-            )}
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-5 py-2 rounded-lg text-sm font-semibold border transition-all hover:scale-105"
+              style={{ borderColor: SILVER, color: SILVER }}>
+              <LogIn className="w-4 h-4 inline mr-1.5" />Login
+            </button>
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-5 py-2 rounded-lg text-sm font-bold text-black transition-all hover:scale-105"
+              style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
+              <UserPlus className="w-4 h-4 inline mr-1.5" />Register
+            </button>
           </div>
         </div>
       </nav>
@@ -82,53 +65,26 @@ export default function Home() {
       <section className="py-24 px-6 text-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(ellipse at 30% 40%, ${GOLD} 0%, transparent 55%), radial-gradient(ellipse at 70% 60%, ${SILVER} 0%, transparent 55%)` }} />
         <div className="relative max-w-4xl mx-auto">
-          <div className="text-7xl mb-6">🏒</div>
+          <div className="flex justify-center mb-6">
+            <HockeyOpsLogo size={96} />
+          </div>
           <h1 className="text-5xl md:text-6xl font-black mb-4 leading-tight">
             <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
           </h1>
-          <p className="text-xl text-gray-400 mb-4 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
             The complete league management platform for hockey associations. Schedule games, manage teams, assign officials, and handle forfeits — all in one place.
           </p>
-
-          {stats && (
-            <div className="flex justify-center gap-8 mb-8 text-center">
-              {[{ v: stats.teams, l: "Teams" }, { v: stats.games, l: "Games" }, { v: stats.officials, l: "Officials" }].map(s => (
-                <div key={s.l}>
-                  <div className="text-3xl font-bold" style={{ color: GOLD }}>{s.v}</div>
-                  <div className="text-sm text-gray-500">{s.l}</div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <>
-                <Link to={createPageUrl("Dashboard")}
-                  className="px-8 py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-105"
-                  style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
-                  Go to Dashboard <ChevronRight className="w-4 h-4 inline" />
-                </Link>
-                <Link to={createPageUrl("Schedule")}
-                  className="px-8 py-3.5 rounded-xl text-base font-semibold transition-all hover:scale-105 border"
-                  style={{ borderColor: GOLD, color: GOLD }}>
-                  View Schedule
-                </Link>
-              </>
-            ) : (
-              <>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="px-8 py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-105"
-                  style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
-                  <LogIn className="w-5 h-5 inline mr-2" />Sign In to your League
-                </button>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="px-8 py-3.5 rounded-xl text-base font-semibold transition-all hover:scale-105 border"
-                  style={{ borderColor: GOLD, color: GOLD }}>
-                  <UserPlus className="w-5 h-5 inline mr-2" />Register / Get Access
-                </button>
-              </>
-            )}
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-10 py-4 rounded-xl text-lg font-bold text-black transition-all hover:scale-105"
+              style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
+              <LogIn className="w-5 h-5 inline mr-2" />Login
+            </button>
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-10 py-4 rounded-xl text-lg font-semibold transition-all hover:scale-105 border"
+              style={{ borderColor: GOLD, color: GOLD }}>
+              <UserPlus className="w-5 h-5 inline mr-2" />Register
+            </button>
           </div>
         </div>
       </section>
@@ -140,8 +96,7 @@ export default function Home() {
           <p className="text-center text-gray-500 mb-12">Built for league administrators, team managers, and officials</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {FEATURES.map((f, i) => (
-              <div key={i} className="rounded-2xl p-6 border transition-all hover:border-opacity-60"
-                style={{ background: "#0a0a0a", borderColor: "#222" }}>
+              <div key={i} className="rounded-2xl p-6 border transition-all" style={{ background: "#0a0a0a", borderColor: "#222" }}>
                 <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4" style={{ background: `${GOLD}18` }}>
                   <f.icon className="w-5 h-5" style={{ color: GOLD }} />
                 </div>
@@ -171,27 +126,25 @@ export default function Home() {
       </section>
 
       {/* CTA */}
-      {!user && (
-        <section className="py-20 px-6">
-          <div className="max-w-2xl mx-auto rounded-3xl p-10 text-center border" style={{ background: "#0a0a0a", borderColor: `${SILVER}30` }}>
-            <div className="text-4xl mb-4">🏒</div>
-            <h2 className="text-3xl font-bold text-white mb-3">Ready to manage your league?</h2>
-            <p className="text-gray-400 mb-8">Contact your league administrator for access, or sign in if you already have an account.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button onClick={() => base44.auth.redirectToLogin()}
-                className="px-8 py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-105"
-                style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
-                <LogIn className="w-5 h-5 inline mr-2" />Sign In
-              </button>
-              <button onClick={() => base44.auth.redirectToLogin()}
-                className="px-8 py-3.5 rounded-xl text-base font-semibold border transition-all hover:scale-105"
-                style={{ borderColor: GOLD, color: GOLD }}>
-                <UserPlus className="w-5 h-5 inline mr-2" />Register
-              </button>
-            </div>
+      <section className="py-20 px-6">
+        <div className="max-w-2xl mx-auto rounded-3xl p-10 text-center border" style={{ background: "#0a0a0a", borderColor: `${SILVER}30` }}>
+          <div className="flex justify-center mb-4"><HockeyOpsLogo size={56} /></div>
+          <h2 className="text-3xl font-bold text-white mb-3">Ready to manage your league?</h2>
+          <p className="text-gray-400 mb-8">Contact your league administrator for access, or sign in if you already have an account.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-8 py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-105"
+              style={{ background: `linear-gradient(135deg, ${SILVER}, #e8e8e8)` }}>
+              <LogIn className="w-5 h-5 inline mr-2" />Login
+            </button>
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-8 py-3.5 rounded-xl text-base font-semibold border transition-all hover:scale-105"
+              style={{ borderColor: GOLD, color: GOLD }}>
+              <UserPlus className="w-5 h-5 inline mr-2" />Register
+            </button>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       <footer className="py-8 text-center border-t" style={{ borderColor: "#111", color: "#444" }}>
         <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>

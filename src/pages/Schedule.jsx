@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Calendar, Moon, ChevronLeft, ChevronRight, Search, Download, Pencil, Check, X, Filter, Trash2, CheckSquare, Square, MapPin, Clock, Users } from "lucide-react";
+import { Calendar, Moon, ChevronLeft, ChevronRight, Search, Download, Pencil, Check, X, Filter, Trash2, CheckSquare, Square, MapPin, Clock, Users, AlertTriangle } from "lucide-react";
+import ProgressModal from "@/components/ProgressModal";
 
 const STATUS_OPTIONS = ["scheduled", "completed", "forfeited", "postponed", "replacement_needed"];
 
@@ -27,7 +28,8 @@ export default function Schedule() {
   const [saving, setSaving] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [deleting, setDeleting] = useState(false);
+  const [progress, setProgress] = useState(null);
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
 
   function getWeekStart(d) {
     const date = new Date(d);
@@ -79,37 +81,59 @@ export default function Schedule() {
     setSaving(false);
   };
 
-  const deleteSelected = async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`Delete ${selectedIds.size} selected game(s)?`)) return;
-    setDeleting(true);
-    const ids = [...selectedIds];
+  const runDelete = async (ids, title) => {
+    setProgress({ title, current: 0, total: ids.length });
     const CHUNK = 10;
     for (let i = 0; i < ids.length; i += CHUNK) {
       await Promise.all(ids.slice(i, i + CHUNK).map(id => base44.entities.Game.delete(id)));
-      if (i + CHUNK < ids.length) await new Promise(r => setTimeout(r, 200));
+      if (i + CHUNK < ids.length) await new Promise(r => setTimeout(r, 150));
+      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, ids.length) }));
     }
+    setProgress(null);
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected game(s)?`)) return;
+    const ids = [...selectedIds];
+    await runDelete(ids, "Deleting Selected Games");
     setGames(prev => prev.filter(g => !selectedIds.has(g.id)));
     setSelectedIds(new Set());
-    setDeleting(false);
   };
 
   const deleteDate = async (date) => {
     const dateGames = byDate[date] || [];
     if (!confirm(`Delete all ${dateGames.length} game(s) on ${date}?`)) return;
-    setDeleting(true);
-    const CHUNK = 10;
-    for (let i = 0; i < dateGames.length; i += CHUNK) {
-      await Promise.all(dateGames.slice(i, i + CHUNK).map(g => base44.entities.Game.delete(g.id)));
-      if (i + CHUNK < dateGames.length) await new Promise(r => setTimeout(r, 200));
-    }
+    const ids = dateGames.map(g => g.id);
+    await runDelete(ids, `Deleting games on ${date}`);
     setGames(prev => prev.filter(g => g.date !== date));
     setSelectedIds(prev => {
-      const n = new Set(prev);
-      dateGames.forEach(g => n.delete(g.id));
-      return n;
+      const n = new Set(prev); dateGames.forEach(g => n.delete(g.id)); return n;
     });
-    setDeleting(false);
+  };
+
+  const deleteAllGames = async () => {
+    setShowDeleteAllConfirm(false);
+    // Also restore ice slot availability
+    const slotIds = [...new Set(games.map(g => g.ice_slot_id).filter(Boolean))];
+    const allIds = games.map(g => g.id);
+    setProgress({ title: "Deleting All Schedule Games", current: 0, total: allIds.length + slotIds.length });
+
+    const CHUNK = 10;
+    for (let i = 0; i < allIds.length; i += CHUNK) {
+      await Promise.all(allIds.slice(i, i + CHUNK).map(id => base44.entities.Game.delete(id)));
+      if (i + CHUNK < allIds.length) await new Promise(r => setTimeout(r, 150));
+      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, allIds.length) }));
+    }
+    // Restore ice slots
+    for (let i = 0; i < slotIds.length; i += CHUNK) {
+      await Promise.all(slotIds.slice(i, i + CHUNK).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
+      if (i + CHUNK < slotIds.length) await new Promise(r => setTimeout(r, 150));
+      setProgress(p => ({ ...p, current: allIds.length + Math.min(i + CHUNK, slotIds.length) }));
+    }
+    setProgress(null);
+    setGames([]);
+    setSelectedIds(new Set());
   };
 
   const toggleSelect = (id) => setSelectedIds(prev => {
@@ -147,20 +171,18 @@ export default function Schedule() {
   };
 
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(currentWeek);
-    d.setDate(d.getDate() + i);
-    return d;
+    const d = new Date(currentWeek); d.setDate(d.getDate() + i); return d;
   });
-
   const gamesInWeek = weekDays.map(day => {
     const dateStr = day.toISOString().split("T")[0];
     return { day, games: filtered.filter(g => g.date === dateStr) };
   });
-
   const unassigned = filtered.filter(g => !g.referee1_name && !g.timekeeper_name).length;
 
   return (
     <div>
+      {progress && <ProgressModal title={progress.title} current={progress.current} total={progress.total} />}
+
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Schedule</h1>
@@ -172,48 +194,54 @@ export default function Schedule() {
         </div>
         <div className="flex gap-2 flex-wrap justify-end items-center">
           {selectedIds.size > 0 && (
-            <button onClick={deleteSelected} disabled={deleting}
-              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-sm disabled:opacity-50">
+            <button onClick={deleteSelected}
+              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 px-3 py-1.5 rounded-lg text-sm">
               <Trash2 className="w-4 h-4" /> Delete {selectedIds.size}
             </button>
           )}
-          <button onClick={selectAll} className="flex items-center gap-1.5 bg-[#1e2533] hover:bg-[#252d3d] border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-sm transition-colors">
+          {games.length > 0 && (
+            <button onClick={() => setShowDeleteAllConfirm(true)}
+              className="flex items-center gap-1.5 bg-red-900/30 hover:bg-red-900/50 border border-red-700/40 text-red-400 px-3 py-1.5 rounded-lg text-sm">
+              <Trash2 className="w-4 h-4" /> Clear All ({games.length})
+            </button>
+          )}
+          <button onClick={selectAll} className="flex items-center gap-1.5 border border-gray-700 text-gray-300 px-3 py-1.5 rounded-lg text-sm" style={{ background: "#111" }}>
             {selectedIds.size === filtered.length && filtered.length > 0 ? <CheckSquare className="w-4 h-4 text-yellow-400" /> : <Square className="w-4 h-4" />}
             {selectedIds.size === filtered.length && filtered.length > 0 ? "Deselect All" : "Select All"}
           </button>
-          <button onClick={exportCSV} className="flex items-center gap-1.5 bg-[#c0c0c0] hover:bg-white text-black px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-black" style={{ background: "#c0c0c0" }}>
             <Download className="w-4 h-4" /> Export
           </button>
-          <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-lg text-sm transition-colors ${showFilters ? "bg-yellow-500/20 border-yellow-500/40 text-yellow-400" : "bg-[#1e2533] border-gray-700 text-gray-300"}`}>
+          <button onClick={() => setShowFilters(!showFilters)} className={`flex items-center gap-1.5 border px-3 py-1.5 rounded-lg text-sm ${showFilters ? "border-yellow-500/40 text-yellow-400" : "border-gray-700 text-gray-300"}`} style={{ background: "#111" }}>
             <Filter className="w-4 h-4" /> Filter
           </button>
           <div className="flex rounded-lg overflow-hidden border border-gray-700">
-            <button onClick={() => setViewMode("list")} className={`px-3 py-1.5 text-sm ${viewMode === "list" ? "bg-[#c0c0c0] text-black font-medium" : "bg-[#1e2533] text-gray-400"}`}>List</button>
-            <button onClick={() => setViewMode("calendar")} className={`px-3 py-1.5 text-sm ${viewMode === "calendar" ? "bg-[#c0c0c0] text-black font-medium" : "bg-[#1e2533] text-gray-400"}`}>Calendar</button>
+            <button onClick={() => setViewMode("list")} className={`px-3 py-1.5 text-sm ${viewMode === "list" ? "text-black font-medium" : "text-gray-400"}`} style={{ background: viewMode === "list" ? "#c0c0c0" : "#111" }}>List</button>
+            <button onClick={() => setViewMode("calendar")} className={`px-3 py-1.5 text-sm ${viewMode === "calendar" ? "text-black font-medium" : "text-gray-400"}`} style={{ background: viewMode === "calendar" ? "#c0c0c0" : "#111" }}>Calendar</button>
           </div>
         </div>
       </div>
 
-      {/* Search + Filters */}
+      {/* Filters */}
       <div className="flex gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-          <input className="w-full bg-[#1e2533] border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"
+          <input className="w-full border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500" style={{ background: "#111" }}
             placeholder="Search teams or arena..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         {showFilters && (
           <>
-            <select className="bg-[#1e2533] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"
+            <select className="border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500" style={{ background: "#111" }}
               value={filterDiv} onChange={e => setFilterDiv(e.target.value)}>
               <option value="all">All Divisions</option>
               {divisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
-            <select className="bg-[#1e2533] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"
+            <select className="border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500" style={{ background: "#111" }}
               value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
               <option value="all">All Statuses</option>
               {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
             </select>
-            <select className="bg-[#1e2533] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500"
+            <select className="border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-yellow-500" style={{ background: "#111" }}
               value={filterType} onChange={e => setFilterType(e.target.value)}>
               <option value="all">All Types</option>
               <option value="regular">Regular Season</option>
@@ -224,7 +252,7 @@ export default function Schedule() {
       </div>
 
       {loading ? (
-        <div className="space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="bg-[#1e2533] rounded-xl h-28 animate-pulse" />)}</div>
+        <div className="space-y-4">{[...Array(5)].map((_, i) => <div key={i} className="rounded-xl h-28 animate-pulse" style={{ background: "#111" }} />)}</div>
       ) : viewMode === "list" ? (
         <div className="space-y-6">
           {sortedDates.length === 0 && (
@@ -238,41 +266,39 @@ export default function Schedule() {
             const allDateSelected = dateGames.every(g => selectedIds.has(g.id));
             return (
               <div key={date}>
-                {/* Date header with checkbox */}
                 <div className="flex items-center gap-3 mb-2">
                   <button onClick={() => selectDate(date)} className="text-gray-500 hover:text-yellow-400 shrink-0">
                     {allDateSelected ? <CheckSquare className="w-4 h-4 text-yellow-400" /> : <Square className="w-4 h-4" />}
                   </button>
-                  <div className="text-sm font-semibold text-[#c0c0c0]">
+                  <div className="text-sm font-semibold" style={{ color: "#c0c0c0" }}>
                     {new Date(date + "T12:00:00").toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
                   </div>
                   <div className="flex-1 h-px bg-gray-800" />
                   <span className="text-xs text-gray-500">{dateGames.length} game{dateGames.length !== 1 ? "s" : ""}</span>
-                  <button onClick={() => deleteDate(date)} disabled={deleting}
-                    className="text-gray-600 hover:text-red-400 transition-colors disabled:opacity-50" title="Delete all games on this date">
+                  <button onClick={() => deleteDate(date)} className="text-gray-600 hover:text-red-400" title="Delete all games on this date">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <div className="grid gap-2">
                   {dateGames.map(game => (
-                    <div key={game.id} className={`bg-[#1e2533] rounded-xl border transition-colors ${selectedIds.has(game.id) ? "border-yellow-500/40 bg-yellow-500/5" : editingGameId === game.id ? "border-[#c0c0c0]/50" : "border-gray-800 hover:border-gray-700"}`}>
+                    <div key={game.id} className={`rounded-xl border transition-colors ${selectedIds.has(game.id) ? "border-yellow-500/40 bg-yellow-500/5" : editingGameId === game.id ? "border-gray-500/50" : "border-gray-800 hover:border-gray-700"}`} style={{ background: "#0d0d0d" }}>
                       {editingGameId === game.id ? (
                         <div className="p-4">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                             <div>
                               <label className="text-xs text-gray-400 block mb-1">Date</label>
-                              <input type="date" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                              <input type="date" className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                                 value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} />
                             </div>
                             <div>
                               <label className="text-xs text-gray-400 block mb-1">Start Time</label>
-                              <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                              <input type="time" className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                                 value={editForm.start_time} onChange={e => setEditForm(f => ({ ...f, start_time: e.target.value }))} />
                             </div>
                             <div>
                               <label className="text-xs text-gray-400 block mb-1">Status</label>
-                              <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                              <select className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                                 value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
                                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
                               </select>
@@ -280,32 +306,27 @@ export default function Schedule() {
                           </div>
                           <div className="mb-3">
                             <label className="text-xs text-gray-400 block mb-1">Notes</label>
-                            <input className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                            <input className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                               placeholder="Optional notes..." value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
                           </div>
                           <div className="flex gap-2 justify-end">
                             <button onClick={cancelEdit} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-600 text-gray-300 text-sm">
                               <X className="w-3.5 h-3.5" /> Cancel
                             </button>
-                            <button onClick={() => saveEdit(game.id)} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#c0c0c0] hover:bg-white text-black text-sm font-medium disabled:opacity-50">
+                            <button onClick={() => saveEdit(game.id)} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-black text-sm font-medium disabled:opacity-50" style={{ background: "#c0c0c0" }}>
                               <Check className="w-3.5 h-3.5" /> {saving ? "Saving..." : "Save"}
                             </button>
                           </div>
                         </div>
                       ) : (
                         <div className="p-4 flex items-center gap-3">
-                          {/* Checkbox */}
                           <button onClick={() => toggleSelect(game.id)} className="text-gray-500 hover:text-yellow-400 shrink-0">
                             {selectedIds.has(game.id) ? <CheckSquare className="w-4 h-4 text-yellow-400" /> : <Square className="w-4 h-4" />}
                           </button>
-
-                          {/* Time */}
                           <div className="w-16 shrink-0 text-center">
                             <div className="text-sm font-bold text-white">{game.start_time}</div>
                             {game.is_late_game && <Moon className="w-3.5 h-3.5 text-yellow-400 mx-auto mt-0.5" />}
                           </div>
-
-                          {/* Matchup */}
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-white">
                               {game.home_team_name} <span className="text-gray-500 font-normal text-xs">vs</span> {game.away_team_name}
@@ -316,7 +337,6 @@ export default function Schedule() {
                               {game.end_time && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />Ends {game.end_time}</span>}
                               {game.game_type === "playoff" && <span className="text-purple-400">Playoff</span>}
                             </div>
-                            {/* Officials */}
                             {(game.referee1_name || game.timekeeper_name) ? (
                               <div className="text-xs text-gray-500 mt-0.5">
                                 {game.referee1_name && <span>Ref: {game.referee1_name}{game.referee2_name ? `, ${game.referee2_name}` : ""}</span>}
@@ -327,20 +347,18 @@ export default function Schedule() {
                             )}
                             {game.notes && <div className="text-xs text-gray-500 mt-0.5 italic">"{game.notes}"</div>}
                           </div>
-
-                          {/* Status + Actions */}
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[game.status] || "bg-gray-500/10 text-gray-400 border-gray-500/20"}`}>
                               {game.status?.replace(/_/g, " ")}
                             </span>
-                            <button onClick={() => startEdit(game)} className="p-1.5 text-gray-500 hover:text-[#c0c0c0] transition-colors rounded-lg hover:bg-white/5" title="Edit game">
+                            <button onClick={() => startEdit(game)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={async () => {
                               if (!confirm("Delete this game?")) return;
                               await base44.entities.Game.delete(game.id);
                               setGames(prev => prev.filter(g => g.id !== game.id));
-                            }} className="p-1.5 text-gray-500 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10" title="Delete game">
+                            }} className="p-1.5 text-gray-500 hover:text-red-400 rounded-lg hover:bg-red-500/10">
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -354,18 +372,17 @@ export default function Schedule() {
           })}
         </div>
       ) : (
-        /* CALENDAR VIEW */
         <div>
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() - 7); setCurrentWeek(d); }}
-              className="p-2 bg-[#c0c0c0] rounded-lg text-black hover:bg-white transition-colors">
+              className="p-2 rounded-lg text-black hover:bg-white transition-colors" style={{ background: "#c0c0c0" }}>
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="text-white font-medium text-sm">
               {currentWeek.toLocaleDateString("en-US", { month: "long", day: "numeric" })} – {weekDays[6].toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
             </span>
             <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() + 7); setCurrentWeek(d); }}
-              className="p-2 bg-[#c0c0c0] rounded-lg text-black hover:bg-white transition-colors">
+              className="p-2 rounded-lg text-black hover:bg-white transition-colors" style={{ background: "#c0c0c0" }}>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -373,18 +390,18 @@ export default function Schedule() {
             {gamesInWeek.map(({ day, games: dayGames }) => {
               const isToday = day.toISOString().split("T")[0] === new Date().toISOString().split("T")[0];
               return (
-                <div key={day.toISOString()} className={`bg-[#1e2533] rounded-lg border min-h-36 ${isToday ? "border-yellow-500/50" : "border-gray-800"}`}>
+                <div key={day.toISOString()} className={`rounded-lg border min-h-36 ${isToday ? "border-yellow-500/50" : "border-gray-800"}`} style={{ background: "#0d0d0d" }}>
                   <div className={`border-b border-gray-800 px-2 py-1.5 text-xs font-medium ${isToday ? "text-yellow-400" : "text-gray-400"}`}>
                     <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
                     <div className={`text-base font-bold ${isToday ? "text-yellow-400" : "text-white"}`}>{day.getDate()}</div>
                   </div>
                   <div className="p-1 space-y-1">
                     {dayGames.sort((a, b) => a.start_time?.localeCompare(b.start_time)).map(g => (
-                      <div key={g.id} onClick={() => startEdit(g)} className={`text-xs rounded p-1.5 cursor-pointer transition-opacity hover:opacity-80 ${g.is_late_game ? "bg-yellow-500/15 text-yellow-300" : "bg-[#c0c0c0]/10 text-gray-200"}`}>
+                      <div key={g.id} onClick={() => startEdit(g)} className={`text-xs rounded p-1.5 cursor-pointer hover:opacity-80 ${g.is_late_game ? "bg-yellow-500/15 text-yellow-300" : "text-gray-200"}`} style={{ background: g.is_late_game ? undefined : "rgba(192,192,192,0.08)" }}>
                         <div className="font-semibold text-xs leading-tight truncate">{g.home_team_name}</div>
                         <div className="opacity-70 truncate text-xs">vs {g.away_team_name}</div>
                         <div className="opacity-60 text-xs">{g.start_time} · {g.arena_name}</div>
-                        <div className="opacity-60 text-xs text-yellow-500">{g.division_name}</div>
+                        <div className="opacity-60 text-xs" style={{ color: "#d4af37" }}>{g.division_name}</div>
                         {!g.referee1_name && <div className="text-orange-400 text-xs opacity-80">⚠ No ref</div>}
                       </div>
                     ))}
@@ -396,47 +413,47 @@ export default function Schedule() {
         </div>
       )}
 
-      {/* Edit Modal for calendar clicks */}
+      {/* Calendar edit modal */}
       {editingGameId && viewMode === "calendar" && (() => {
         const game = games.find(g => g.id === editingGameId);
         if (!game) return null;
         return (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-[#1e2533] rounded-xl border border-[#c0c0c0]/30 p-6 w-full max-w-md">
+            <div className="rounded-xl border p-6 w-full max-w-md" style={{ background: "#111", borderColor: "rgba(192,192,192,0.3)" }}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-base font-semibold text-white">{game.home_team_name} vs {game.away_team_name}</h2>
                   <p className="text-xs text-gray-400">{game.division_name} · {game.arena_name}</p>
                 </div>
-                <button onClick={cancelEdit}><X className="w-5 h-5 text-gray-400" /></button>
+                <button onClick={cancelEdit}><X className="w-5 h-5 text-gray-500" /></button>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Date</label>
-                  <input type="date" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                  <input type="date" className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                     value={editForm.date} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} />
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">Start Time</label>
-                  <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                  <input type="time" className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                     value={editForm.start_time} onChange={e => setEditForm(f => ({ ...f, start_time: e.target.value }))} />
                 </div>
               </div>
               <div className="mb-3">
                 <label className="text-xs text-gray-400 block mb-1">Status</label>
-                <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                <select className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                   value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))}>
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace(/_/g, " ")}</option>)}
                 </select>
               </div>
               <div className="mb-4">
                 <label className="text-xs text-gray-400 block mb-1">Notes</label>
-                <input className="w-full bg-gray-900 border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
+                <input className="w-full bg-black border border-gray-700 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-yellow-500"
                   placeholder="Optional notes..." value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
               </div>
               <div className="flex gap-2">
-                <button onClick={cancelEdit} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Cancel</button>
-                <button onClick={() => saveEdit(game.id)} disabled={saving} className="flex-1 py-2 bg-[#c0c0c0] hover:bg-white rounded-lg text-black text-sm font-medium disabled:opacity-50">
+                <button onClick={cancelEdit} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
+                <button onClick={() => saveEdit(game.id)} disabled={saving} className="flex-1 py-2 rounded-lg text-black text-sm font-medium disabled:opacity-50" style={{ background: "#c0c0c0" }}>
                   {saving ? "Saving..." : "Save Changes"}
                 </button>
               </div>
@@ -444,6 +461,32 @@ export default function Schedule() {
           </div>
         );
       })()}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="rounded-2xl border p-6 w-full max-w-md" style={{ background: "#111", borderColor: "#333" }}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "rgba(239,68,68,0.15)" }}>
+                <AlertTriangle className="w-6 h-6 text-red-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Clear Entire Schedule?</h2>
+                <p className="text-sm text-gray-400">{games.length} games will be permanently deleted</p>
+              </div>
+            </div>
+            <div className="rounded-lg p-4 mb-5 text-sm border" style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)", color: "#fca5a5" }}>
+              This will delete all {games.length} scheduled games and restore all ice slots to available. This cannot be undone.
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteAllConfirm(false)} className="flex-1 py-2.5 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
+              <button onClick={deleteAllGames} className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 rounded-lg text-white text-sm font-medium">
+                Yes, Delete All Games
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
