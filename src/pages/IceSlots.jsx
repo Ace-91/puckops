@@ -1,6 +1,29 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, Clock, MapPin, X, Moon, Upload } from "lucide-react";
+import { Plus, Trash2, Clock, MapPin, X, Moon, Upload, Download, CheckSquare, Square } from "lucide-react";
+
+// Auto-compute end time: start + 60 min
+function addOneHour(time) {
+  if (!time) return "";
+  const [h, m] = time.split(":").map(Number);
+  const total = h * 60 + m + 60;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+function ImportProgress({ total, current, done }) {
+  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between text-xs text-gray-400 mb-1">
+        <span>{done ? "Import complete!" : `Importing ${current} of ${total}...`}</span>
+        <span>{pct}%</span>
+      </div>
+      <div className="w-full bg-gray-800 rounded-full h-2">
+        <div className="bg-sky-500 h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export default function IceSlots() {
   const [arenas, setArenas] = useState([]);
@@ -12,19 +35,25 @@ export default function IceSlots() {
   const [filterDate, setFilterDate] = useState("");
 
   const [arenaForm, setArenaForm] = useState({ name: "", address: "" });
-  const [slotForm, setSlotForm] = useState({ arena_id: "", date: "", start_time: "", end_time: "", season: "2025-2026" });
+  const [slotForm, setSlotForm] = useState({ arena_id: "", date: "", start_time: "", season: "2025-2026" });
 
   const [bulkMode, setBulkMode] = useState(false);
-  const [bulkForm, setBulkForm] = useState({ arena_id: "", start_date: "", end_date: "", days_of_week: [], start_time: "", end_time: "", season: "2025-2026" });
+  const [bulkForm, setBulkForm] = useState({ arena_id: "", start_date: "", end_date: "", days_of_week: [], start_time: "", season: "2025-2026" });
+
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
   const [csvImporting, setCsvImporting] = useState(false);
+  const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0, done: false });
   const [csvResult, setCsvResult] = useState(null);
+
+  // Selection for bulk delete
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
   const downloadSlotsTemplate = () => {
-    const csv = "arena_name,date,start_time,end_time,season\nArena 1,2025-10-01,19:00,20:30,2025-2026\nArena 1,2025-10-01,22:30,00:00,2025-2026";
+    const csv = "arena_name,date,start_time,season\nArena 1,2025-10-01,19:00,2025-2026\nArena 1,2025-10-03,22:30,2025-2026";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "iceslots_template.csv"; a.click();
@@ -36,30 +65,43 @@ export default function IceSlots() {
     setCsvImporting(true);
     setCsvResult(null);
     const text = await csvFile.text();
-    const lines = text.trim().split("\n");
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
+    const lines = text.trim().split("\n").filter(l => l.trim());
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
+    const dataLines = lines.slice(1);
     let created = 0, skipped = 0;
     const slotsToCreate = [];
 
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(",").map(c => c.trim());
+    setCsvProgress({ current: 0, total: dataLines.length, done: false });
+
+    for (let i = 0; i < dataLines.length; i++) {
+      const cols = dataLines[i].split(",").map(c => c.trim());
       const row = {};
       headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
       if (!row.date || !row.start_time) { skipped++; continue; }
       const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
+      const startTime = row.start_time;
       slotsToCreate.push({
         arena_id: arena?.id || "",
         arena_name: arena?.name || row.arena_name || "",
         date: row.date,
-        start_time: row.start_time,
-        end_time: row.end_time || "",
+        start_time: startTime,
+        end_time: addOneHour(startTime),
         season: row.season || "2025-2026",
-        is_late_game: isLate(row.start_time),
+        is_late_game: isLate(startTime),
         is_available: true,
       });
       created++;
+      setCsvProgress({ current: i + 1, total: dataLines.length, done: false });
     }
-    if (slotsToCreate.length > 0) await base44.entities.IceSlot.bulkCreate(slotsToCreate);
+
+    // Batch in chunks of 50 to show progress
+    const CHUNK = 50;
+    for (let i = 0; i < slotsToCreate.length; i += CHUNK) {
+      await base44.entities.IceSlot.bulkCreate(slotsToCreate.slice(i, i + CHUNK));
+      setCsvProgress({ current: Math.min(i + CHUNK, slotsToCreate.length), total: slotsToCreate.length, done: i + CHUNK >= slotsToCreate.length });
+    }
+    if (slotsToCreate.length === 0) setCsvProgress({ current: 0, total: 0, done: true });
+
     setCsvResult({ created, skipped });
     setCsvImporting(false);
     loadAll();
@@ -67,9 +109,10 @@ export default function IceSlots() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [a, s] = await Promise.all([base44.entities.Arena.list(), base44.entities.IceSlot.list("-date", 500)]);
+    const [a, s] = await Promise.all([base44.entities.Arena.list(), base44.entities.IceSlot.list("date", 1000)]);
     setArenas(a);
     setSlots(s);
+    setSelectedIds(new Set());
     setLoading(false);
   };
 
@@ -95,19 +138,21 @@ export default function IceSlots() {
   const saveSlot = async () => {
     await base44.entities.IceSlot.create({
       ...slotForm,
+      end_time: addOneHour(slotForm.start_time),
       arena_name: arenas.find(a => a.id === slotForm.arena_id)?.name,
       is_late_game: isLate(slotForm.start_time),
+      is_available: true,
     });
     setShowSlotForm(false);
-    setSlotForm({ arena_id: "", date: "", start_time: "", end_time: "", season: "2025-2026" });
+    setSlotForm({ arena_id: "", date: "", start_time: "", season: "2025-2026" });
     loadAll();
   };
 
   const saveBulk = async () => {
     const arena = arenas.find(a => a.id === bulkForm.arena_id);
     const slotsToCreate = [];
-    const start = new Date(bulkForm.start_date);
-    const end = new Date(bulkForm.end_date);
+    const start = new Date(bulkForm.start_date + "T12:00:00");
+    const end = new Date(bulkForm.end_date + "T12:00:00");
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       if (bulkForm.days_of_week.includes(String(d.getDay()))) {
         slotsToCreate.push({
@@ -115,7 +160,7 @@ export default function IceSlots() {
           arena_name: arena?.name,
           date: d.toISOString().split("T")[0],
           start_time: bulkForm.start_time,
-          end_time: bulkForm.end_time,
+          end_time: addOneHour(bulkForm.start_time),
           season: bulkForm.season,
           is_late_game: isLate(bulkForm.start_time),
           is_available: true,
@@ -130,7 +175,16 @@ export default function IceSlots() {
 
   const deleteSlot = async (id) => {
     await base44.entities.IceSlot.delete(id);
-    loadAll();
+    setSlots(prev => prev.filter(s => s.id !== id));
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    if (!confirm(`Delete ${selectedIds.size} selected slot(s)?`)) return;
+    setDeleting(true);
+    for (const id of selectedIds) await base44.entities.IceSlot.delete(id);
+    setDeleting(false);
+    await loadAll();
   };
 
   const filteredSlots = slots.filter(s =>
@@ -138,26 +192,38 @@ export default function IceSlots() {
     (!filterDate || s.date === filterDate)
   );
 
+  const toggleSelect = (id) => setSelectedIds(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const selectAll = () => {
+    if (selectedIds.size === filteredSlots.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredSlots.map(s => s.id)));
+  };
+
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Ice Slots & Arenas</h1>
           <p className="text-gray-400 text-sm mt-1">{arenas.length} arenas · {slots.length} total slots</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); }} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); setCsvProgress({ current: 0, total: 0, done: false }); }}
+            className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
             <Upload className="w-4 h-4" /> Import CSV
           </button>
-          <button onClick={() => setShowArenaForm(true)} className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={() => setShowArenaForm(true)} className="flex items-center gap-2 bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
             <Plus className="w-4 h-4" /> Arena
           </button>
-          <button onClick={() => setBulkMode(true)} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={() => setBulkMode(true)} className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
             <Plus className="w-4 h-4" /> Bulk Slots
           </button>
-          <button onClick={() => setShowSlotForm(true)} className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={() => setShowSlotForm(true)} className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-lg text-sm font-medium">
             <Plus className="w-4 h-4" /> Single Slot
           </button>
         </div>
@@ -177,8 +243,8 @@ export default function IceSlots() {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      {/* Filters + bulk delete */}
+      <div className="flex gap-3 mb-4 flex-wrap items-center">
         <select className="bg-[#1e2533] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
           value={filterArena} onChange={e => setFilterArena(e.target.value)}>
           <option value="all">All Arenas</option>
@@ -187,6 +253,12 @@ export default function IceSlots() {
         <input type="date" className="bg-[#1e2533] border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
           value={filterDate} onChange={e => setFilterDate(e.target.value)} />
         {filterDate && <button onClick={() => setFilterDate("")} className="text-gray-400 hover:text-white text-sm px-2">Clear</button>}
+        {selectedIds.size > 0 && (
+          <button onClick={deleteSelected} disabled={deleting}
+            className="ml-auto flex items-center gap-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-sm font-medium">
+            <Trash2 className="w-4 h-4" /> Delete {selectedIds.size} selected
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -196,6 +268,13 @@ export default function IceSlots() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-700">
+                <th className="px-4 py-3 w-10">
+                  <button onClick={selectAll} className="text-gray-400 hover:text-white">
+                    {selectedIds.size === filteredSlots.length && filteredSlots.length > 0
+                      ? <CheckSquare className="w-4 h-4 text-sky-400" />
+                      : <Square className="w-4 h-4" />}
+                  </button>
+                </th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Arena</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">Time</th>
@@ -205,20 +284,27 @@ export default function IceSlots() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800">
-              {filteredSlots.slice(0, 100).map(slot => (
-                <tr key={slot.id} className="hover:bg-white/2 transition-colors">
-                  <td className="px-4 py-3 text-sm text-white">{slot.date}</td>
-                  <td className="px-4 py-3 text-sm text-gray-300">{slot.arena_name}</td>
-                  <td className="px-4 py-3 text-sm text-gray-300 flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-500" />{slot.start_time} – {slot.end_time}</td>
-                  <td className="px-4 py-3">
-                    {slot.is_late_game && <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full w-fit"><Moon className="w-3 h-3" />Late Game</span>}
+              {filteredSlots.slice(0, 200).map(slot => (
+                <tr key={slot.id} className={`hover:bg-white/2 transition-colors ${selectedIds.has(slot.id) ? "bg-sky-500/5" : ""}`}>
+                  <td className="px-4 py-2.5">
+                    <button onClick={() => toggleSelect(slot.id)} className="text-gray-400 hover:text-sky-400">
+                      {selectedIds.has(slot.id) ? <CheckSquare className="w-4 h-4 text-sky-400" /> : <Square className="w-4 h-4" />}
+                    </button>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2.5 text-sm text-white">{slot.date}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-300">{slot.arena_name}</td>
+                  <td className="px-4 py-2.5 text-sm text-gray-300 flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5 text-gray-500" />{slot.start_time} – {slot.end_time || addOneHour(slot.start_time)}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    {slot.is_late_game && <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full w-fit"><Moon className="w-3 h-3" />Late</span>}
+                  </td>
+                  <td className="px-4 py-2.5">
                     <span className={`text-xs px-2 py-0.5 rounded-full ${slot.is_available ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}`}>
                       {slot.is_available ? "Available" : "Used"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-2.5 text-right">
                     <button onClick={() => deleteSlot(slot.id)} className="p-1 text-gray-500 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                   </td>
                 </tr>
@@ -226,6 +312,7 @@ export default function IceSlots() {
             </tbody>
           </table>
           {filteredSlots.length === 0 && <p className="text-center py-8 text-gray-500">No slots found.</p>}
+          {filteredSlots.length > 200 && <p className="text-center py-3 text-gray-500 text-xs">Showing 200 of {filteredSlots.length} slots. Use filters to narrow results.</p>}
         </div>
       )}
 
@@ -238,23 +325,23 @@ export default function IceSlots() {
               <button onClick={() => setShowCsvImport(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg p-3 mb-4 text-xs text-sky-300">
-              Upload a CSV with columns: <strong>arena_name, date (YYYY-MM-DD), start_time (HH:MM), end_time (HH:MM), season</strong>. Arenas must already exist in the system.
+              Columns: <strong>arena_name, date (YYYY-MM-DD), start_time (HH:MM), season</strong><br />
+              End time is auto-calculated as start + 60 minutes. Arenas must exist in the system.
             </div>
             <button onClick={downloadSlotsTemplate} className="flex items-center gap-2 text-sm text-sky-400 hover:text-sky-300 mb-4 underline">
-              <span>↓</span> Download template CSV
+              <Download className="w-4 h-4" /> Download template CSV
             </button>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">CSV File *</label>
-                <input type="file" accept=".csv" className="w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:text-sm file:cursor-pointer cursor-pointer"
-                  onChange={e => setCsvFile(e.target.files[0])} />
-              </div>
-              {csvResult && (
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm text-green-300">
-                  ✓ {csvResult.created} slots imported, {csvResult.skipped} skipped.
-                </div>
-              )}
+            <div>
+              <label className="text-sm text-gray-400 block mb-1">CSV File *</label>
+              <input type="file" accept=".csv" className="w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:text-sm file:cursor-pointer cursor-pointer"
+                onChange={e => setCsvFile(e.target.files[0])} />
             </div>
+            {csvImporting && <ImportProgress total={csvProgress.total} current={csvProgress.current} done={csvProgress.done} />}
+            {csvResult && !csvImporting && (
+              <div className="mt-3 bg-green-500/10 border border-green-500/20 rounded-lg p-3 text-sm text-green-300">
+                ✓ {csvResult.created} slots imported{csvResult.skipped > 0 ? `, ${csvResult.skipped} skipped` : ""}.
+              </div>
+            )}
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowCsvImport(false)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Close</button>
               <button onClick={handleCsvImport} disabled={!csvFile || csvImporting}
@@ -316,17 +403,11 @@ export default function IceSlots() {
                 <input type="date" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
                   value={slotForm.date} onChange={e => setSlotForm(f => ({ ...f, date: e.target.value }))} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">Start Time</label>
-                  <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
-                    value={slotForm.start_time} onChange={e => setSlotForm(f => ({ ...f, start_time: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">End Time</label>
-                  <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
-                    value={slotForm.end_time} onChange={e => setSlotForm(f => ({ ...f, end_time: e.target.value }))} />
-                </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Start Time</label>
+                <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  value={slotForm.start_time} onChange={e => setSlotForm(f => ({ ...f, start_time: e.target.value }))} />
+                {slotForm.start_time && <p className="text-xs text-gray-500 mt-1">End time: {addOneHour(slotForm.start_time)} (60 min)</p>}
               </div>
             </div>
             <div className="flex gap-3 mt-4">
@@ -378,17 +459,11 @@ export default function IceSlots() {
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">Start Time</label>
-                  <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
-                    value={bulkForm.start_time} onChange={e => setBulkForm(f => ({ ...f, start_time: e.target.value }))} />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-400 block mb-1">End Time</label>
-                  <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
-                    value={bulkForm.end_time} onChange={e => setBulkForm(f => ({ ...f, end_time: e.target.value }))} />
-                </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Start Time</label>
+                <input type="time" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  value={bulkForm.start_time} onChange={e => setBulkForm(f => ({ ...f, start_time: e.target.value }))} />
+                {bulkForm.start_time && <p className="text-xs text-gray-500 mt-1">End time auto-set to {addOneHour(bulkForm.start_time)}</p>}
               </div>
             </div>
             <div className="flex gap-3 mt-4">
