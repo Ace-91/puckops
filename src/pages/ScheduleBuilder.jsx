@@ -221,9 +221,20 @@ export default function ScheduleBuilder() {
   const saveSchedule = async () => {
     if (!preview.length) return;
     setGenerating(true);
-    await base44.entities.Game.bulkCreate(preview);
+    // Bulk-create games in chunks of 50 to avoid rate limits
+    const CHUNK = 50;
+    for (let i = 0; i < preview.length; i += CHUNK) {
+      await base44.entities.Game.bulkCreate(preview.slice(i, i + CHUNK));
+    }
+    // Mark ice slots unavailable in batches of 10 with a small delay between batches
     const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
-    for (const id of slotIds) await base44.entities.IceSlot.update(id, { is_available: false });
+    const SLOT_CHUNK = 10;
+    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
+      await Promise.all(slotIds.slice(i, i + SLOT_CHUNK).map(id =>
+        base44.entities.IceSlot.update(id, { is_available: false })
+      ));
+      if (i + SLOT_CHUNK < slotIds.length) await new Promise(r => setTimeout(r, 300));
+    }
     setResult({ saved: true, count: preview.length });
     setPreview([]); setStats(null); setWarnings([]);
     setGenerating(false);
@@ -233,9 +244,19 @@ export default function ScheduleBuilder() {
     const div = divisions.find(d => d.id === divId);
     if (!confirm(`Delete all regular season games for ${div?.name}?`)) return;
     const toDelete = existingGames.filter(g => g.division_id === divId && g.game_type === "regular");
-    for (const g of toDelete) {
-      await base44.entities.Game.delete(g.id);
-      if (g.ice_slot_id) await base44.entities.IceSlot.update(g.ice_slot_id, { is_available: true });
+    // Delete games in parallel batches of 10
+    const CHUNK = 10;
+    for (let i = 0; i < toDelete.length; i += CHUNK) {
+      await Promise.all(toDelete.slice(i, i + CHUNK).map(g => base44.entities.Game.delete(g.id)));
+      if (i + CHUNK < toDelete.length) await new Promise(r => setTimeout(r, 200));
+    }
+    // Restore slot availability in batches
+    const slotIds = [...new Set(toDelete.map(g => g.ice_slot_id).filter(Boolean))];
+    for (let i = 0; i < slotIds.length; i += CHUNK) {
+      await Promise.all(slotIds.slice(i, i + CHUNK).map(id =>
+        base44.entities.IceSlot.update(id, { is_available: true })
+      ));
+      if (i + CHUNK < slotIds.length) await new Promise(r => setTimeout(r, 200));
     }
     const g = await base44.entities.Game.list();
     setExistingGames(g);

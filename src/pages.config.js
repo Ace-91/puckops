@@ -53,14 +53,14 @@ import Dashboard from './pages/Dashboard';
 import Forfeits from './pages/Forfeits';
 import IceSlots from './pages/IceSlots';
 import OfficialAvailability from './pages/OfficialAvailability';
+import OfficialPortal from './pages/OfficialPortal';
 import Officials from './pages/Officials';
+import PublicBlackoutForm from './pages/PublicBlackoutForm';
+import PublicForfeitForm from './pages/PublicForfeitForm';
 import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import OfficialPortal from './pages/OfficialPortal';
-import PublicForfeitForm from './pages/PublicForfeitForm';
-import PublicBlackoutForm from './pages/PublicBlackoutForm';
 import __Layout from './Layout.jsx';
 
 
@@ -71,14 +71,14 @@ export const PAGES = {
     "Forfeits": Forfeits,
     "IceSlots": IceSlots,
     "OfficialAvailability": OfficialAvailability,
+    "OfficialPortal": OfficialPortal,
     "Officials": Officials,
+    "PublicBlackoutForm": PublicBlackoutForm,
+    "PublicForfeitForm": PublicForfeitForm,
     "Schedule": Schedule,
     "ScheduleBuilder": ScheduleBuilder,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "OfficialPortal": OfficialPortal,
-    "PublicForfeitForm": PublicForfeitForm,
-    "PublicBlackoutForm": PublicBlackoutForm,
 }
 
 export const pagesConfig = {
