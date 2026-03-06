@@ -116,23 +116,25 @@ export default function Schedule() {
 
   const deleteAllGames = async () => {
     setShowDeleteAllConfirm(false);
-    // Also restore ice slot availability
+    cancelRef.current = false;
     const slotIds = [...new Set(games.map(g => g.ice_slot_id).filter(Boolean))];
     const allIds = games.map(g => g.id);
-    setProgress({ title: "Deleting All Schedule Games", current: 0, total: allIds.length + slotIds.length });
+    const total = allIds.length + slotIds.length;
+    setProgress({ title: "Clearing Schedule", current: 0, total });
 
-    const CHUNK = 5;
-    for (let i = 0; i < allIds.length; i += CHUNK) {
-      await Promise.all(allIds.slice(i, i + CHUNK).map(id => base44.entities.Game.delete(id)));
-      await new Promise(r => setTimeout(r, 350));
-      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, allIds.length) }));
+    // Delete games one by one
+    for (let i = 0; i < allIds.length; i++) {
+      if (cancelRef.current) break;
+      await base44.entities.Game.delete(allIds[i]);
+      setProgress({ title: "Clearing Schedule", current: i + 1, total });
+      if (i < allIds.length - 1) await new Promise(r => setTimeout(r, 280));
     }
-    // Restore ice slots — smaller chunks with longer delay to avoid rate limits
-    const SLOT_CHUNK = 3;
-    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
-      await Promise.all(slotIds.slice(i, i + SLOT_CHUNK).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
-      await new Promise(r => setTimeout(r, 400));
-      setProgress(p => ({ ...p, current: allIds.length + Math.min(i + SLOT_CHUNK, slotIds.length) }));
+    // Restore ice slots
+    for (let i = 0; i < slotIds.length; i++) {
+      if (cancelRef.current) break;
+      await base44.entities.IceSlot.update(slotIds[i], { is_available: true });
+      setProgress({ title: "Restoring Ice Slots", current: allIds.length + i + 1, total });
+      if (i < slotIds.length - 1) await new Promise(r => setTimeout(r, 280));
     }
     setProgress(null);
     setGames([]);
