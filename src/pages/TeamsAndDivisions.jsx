@@ -111,9 +111,12 @@ export default function TeamsAndDivisions() {
   };
 
   const deleteDiv = async (id) => {
-    if (!confirm("Delete this division and all its teams?")) return;
+    if (!confirm("Delete this division? Teams in this division will NOT be deleted but will be marked as missing a division.")) return;
+    // Disassociate teams (clear division) instead of deleting them
     const divTeams = teams.filter(t => t.division_id === id);
-    for (const t of divTeams) await base44.entities.Team.delete(t.id);
+    for (const t of divTeams) {
+      await base44.entities.Team.update(t.id, { division_id: "", division_name: "" });
+    }
     await base44.entities.Division.delete(id);
     loadAll();
   };

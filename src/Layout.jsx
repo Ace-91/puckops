@@ -25,7 +25,7 @@ const navItems = [
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -33,46 +33,57 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const userRole = user?.role || "team_manager";
-
   const visibleNav = navItems.filter(item => item.roles.includes(userRole) || userRole === "admin");
 
+  // Silver/gold theme colours
+  const SILVER = "#c0c0c0";
+  const GOLD = "#d4af37";
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen text-white flex flex-col" style={{ background: "#000000" }}>
       <style>{`
         :root {
-          --primary: #0ea5e9;
-          --primary-dark: #0284c7;
-          --surface: #1e2533;
-          --surface2: #161c27;
+          --silver: #c0c0c0;
+          --gold: #d4af37;
+          --surface: #111111;
+          --surface2: #1a1a1a;
         }
-        body { background: #0d1117; }
+        body { background: #000000; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c0c0c0; }
       `}</style>
 
       {/* Top nav */}
-      <header className="bg-[#161c27] border-b border-gray-800 sticky top-0 z-50">
+      <header style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a" }} className="sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <button className="lg:hidden" onClick={() => setMenuOpen(!menuOpen)}>
+            <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-sky-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">🏒</span>
+            <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ background: "linear-gradient(135deg, #d4af37, #c0c0c0)" }}>
+                🏒
               </div>
-              <span className="font-bold text-lg text-white hidden sm:block">HockeyOps</span>
+              <div className="hidden sm:block">
+                <span className="font-bold text-lg" style={{ color: SILVER }}>Hockey</span>
+                <span className="font-bold text-lg" style={{ color: GOLD }}>Ops</span>
+              </div>
             </Link>
           </div>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5">
             {visibleNav.slice(0, 6).map(item => (
               <Link
                 key={item.page}
                 to={createPageUrl(item.page)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  currentPageName === item.page
-                    ? "bg-sky-500/20 text-sky-400"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors"
+                style={currentPageName === item.page
+                  ? { color: GOLD, background: "rgba(212,175,55,0.1)" }
+                  : { color: "#999", hover: "color: white" }}
+                onMouseEnter={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "white"; }}
+                onMouseLeave={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "#999"; }}
               >
                 <item.icon className="w-4 h-4" />
                 {item.label}
@@ -81,19 +92,19 @@ export default function Layout({ children, currentPageName }) {
             {visibleNav.length > 6 && (
               <div className="relative">
                 <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5"
+                  onClick={() => setMoreOpen(!moreOpen)}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   More <ChevronDown className="w-3 h-3" />
                 </button>
-                {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-[#1e2533] border border-gray-700 rounded-lg shadow-xl w-52 py-1 z-50">
+                {moreOpen && (
+                  <div className="absolute right-0 top-full mt-1 rounded-lg shadow-2xl w-52 py-1 z-50 border" style={{ background: "#111", borderColor: "#2a2a2a" }}>
                     {visibleNav.slice(6).map(item => (
                       <Link
                         key={item.page}
                         to={createPageUrl(item.page)}
-                        onClick={() => setUserMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5"
+                        onClick={() => setMoreOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                       >
                         <item.icon className="w-4 h-4" />
                         {item.label}
@@ -108,13 +119,13 @@ export default function Layout({ children, currentPageName }) {
           <div className="flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-sky-600 rounded-full flex items-center justify-center text-sm font-medium">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-black" style={{ background: "linear-gradient(135deg, #d4af37, #c0c0c0)" }}>
                   {user.full_name?.[0] || user.email?.[0] || "U"}
                 </div>
-                <span className="text-sm text-gray-300 hidden sm:block">{user.full_name || user.email}</span>
+                <span className="text-sm hidden sm:block" style={{ color: SILVER }}>{user.full_name || user.email}</span>
                 <button
                   onClick={() => base44.auth.logout()}
-                  className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                  className="p-1.5 text-gray-500 hover:text-white transition-colors"
                   title="Logout"
                 >
                   <LogOut className="w-4 h-4" />
@@ -123,7 +134,8 @@ export default function Layout({ children, currentPageName }) {
             ) : (
               <button
                 onClick={() => base44.auth.redirectToLogin()}
-                className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                className="px-4 py-1.5 rounded-lg text-sm font-medium text-black transition-colors"
+                style={{ background: SILVER }}
               >
                 Sign In
               </button>
@@ -134,15 +146,16 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="lg:hidden bg-[#161c27] border-b border-gray-800 px-4 py-3 space-y-1">
+        <div className="lg:hidden border-b px-4 py-3 space-y-1" style={{ background: "#0a0a0a", borderColor: "#2a2a2a" }}>
           {visibleNav.map(item => (
             <Link
               key={item.page}
               to={createPageUrl(item.page)}
               onClick={() => setMenuOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                currentPageName === item.page ? "bg-sky-500/20 text-sky-400" : "text-gray-400"
-              }`}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors"
+              style={currentPageName === item.page
+                ? { color: GOLD, background: "rgba(212,175,55,0.1)" }
+                : { color: "#888" }}
             >
               <item.icon className="w-4 h-4" />
               {item.label}
@@ -155,8 +168,9 @@ export default function Layout({ children, currentPageName }) {
         {children}
       </main>
 
-      <footer className="bg-[#161c27] border-t border-gray-800 py-4 text-center text-gray-500 text-sm">
-        HockeyOps © 2026
+      <footer className="py-4 text-center text-xs border-t" style={{ background: "#0a0a0a", borderColor: "#1a1a1a", color: "#555" }}>
+        <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
+        <span className="ml-2">© 2026 — League Management Platform</span>
       </footer>
     </div>
   );
