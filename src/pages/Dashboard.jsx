@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
+import ProgressModal from "@/components/ProgressModal";
 import { createPageUrl } from "@/utils";
 import { Calendar, Users, Shield, AlertTriangle, Clock, TrendingUp, ChevronRight, Settings, Globe, Trash2, Plus, X, CheckCircle, ChevronDown, ChevronUp, LogIn, UserPlus, Newspaper } from "lucide-react";
 
@@ -72,19 +73,26 @@ export default function Dashboard() {
     setSavingParam(false);
   };
 
+  const [deleteProgress, setDeleteProgress] = useState(null);
+
   const deleteSeason = async (seasonId) => {
     setDeletingId(seasonId);
+    setDeleteConfirm(null);
     const s = seasons.find(s => s.id === seasonId);
     if (s) {
       const seasonGames = await base44.entities.Game.filter({ season: s.name });
-      const CHUNK = 10;
-      for (let i = 0; i < seasonGames.length; i += CHUNK) {
-        await Promise.all(seasonGames.slice(i, i + CHUNK).map(g => base44.entities.Game.delete(g.id)));
-        if (i + CHUNK < seasonGames.length) await new Promise(r => setTimeout(r, 200));
+      if (seasonGames.length > 0) {
+        setDeleteProgress({ title: "Deleting Season Games", current: 0, total: seasonGames.length });
+        const CHUNK = 10;
+        for (let i = 0; i < seasonGames.length; i += CHUNK) {
+          await Promise.all(seasonGames.slice(i, i + CHUNK).map(g => base44.entities.Game.delete(g.id)));
+          if (i + CHUNK < seasonGames.length) await new Promise(r => setTimeout(r, 200));
+          setDeleteProgress(p => ({ ...p, current: Math.min(i + CHUNK, seasonGames.length) }));
+        }
       }
     }
     await base44.entities.LeagueSeason.delete(seasonId);
-    setDeleteConfirm(null);
+    setDeleteProgress(null);
     setDeletingId(null);
     await reload();
   };
