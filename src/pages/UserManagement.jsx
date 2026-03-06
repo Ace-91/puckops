@@ -190,6 +190,7 @@ export default function UserManagement() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">User</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Role</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Official Profile</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Joined</th>
                 <th className="px-4 py-3"></th>
               </tr>
