@@ -30,6 +30,7 @@ export default function Schedule() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [progress, setProgress] = useState(null);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  const cancelRef = useRef(false);
 
   function getWeekStart(d) {
     const date = new Date(d);
@@ -82,12 +83,13 @@ export default function Schedule() {
   };
 
   const runDelete = async (ids, title) => {
+    cancelRef.current = false;
     setProgress({ title, current: 0, total: ids.length });
-    const CHUNK = 10;
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      await Promise.all(ids.slice(i, i + CHUNK).map(id => base44.entities.Game.delete(id)));
-      if (i + CHUNK < ids.length) await new Promise(r => setTimeout(r, 150));
-      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, ids.length) }));
+    for (let i = 0; i < ids.length; i++) {
+      if (cancelRef.current) break;
+      await base44.entities.Game.delete(ids[i]);
+      setProgress({ title, current: i + 1, total: ids.length });
+      if (i < ids.length - 1) await new Promise(r => setTimeout(r, 280));
     }
     setProgress(null);
   };
