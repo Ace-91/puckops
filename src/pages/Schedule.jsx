@@ -184,7 +184,7 @@ export default function Schedule() {
 
   return (
     <div>
-      {progress && <ProgressModal title={progress.title} current={progress.current} total={progress.total} />}
+      {progress && <ProgressModal title={progress.title} current={progress.current} total={progress.total} onCancel={() => { cancelRef.current = true; }} />}
 
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
