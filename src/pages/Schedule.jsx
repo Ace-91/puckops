@@ -125,11 +125,12 @@ export default function Schedule() {
       if (i + CHUNK < allIds.length) await new Promise(r => setTimeout(r, 150));
       setProgress(p => ({ ...p, current: Math.min(i + CHUNK, allIds.length) }));
     }
-    // Restore ice slots
-    for (let i = 0; i < slotIds.length; i += CHUNK) {
-      await Promise.all(slotIds.slice(i, i + CHUNK).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
-      if (i + CHUNK < slotIds.length) await new Promise(r => setTimeout(r, 150));
-      setProgress(p => ({ ...p, current: allIds.length + Math.min(i + CHUNK, slotIds.length) }));
+    // Restore ice slots — smaller chunks with longer delay to avoid rate limits
+    const SLOT_CHUNK = 3;
+    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
+      await Promise.all(slotIds.slice(i, i + SLOT_CHUNK).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
+      await new Promise(r => setTimeout(r, 400));
+      setProgress(p => ({ ...p, current: allIds.length + Math.min(i + SLOT_CHUNK, slotIds.length) }));
     }
     setProgress(null);
     setGames([]);
