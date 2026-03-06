@@ -117,7 +117,7 @@ export default function IceSlots() {
       }
 
       setCsvProgress({ current: i + 1, total: dataLines.length });
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 150));
     }
 
     setCsvResult({ created, updated, skipped });
