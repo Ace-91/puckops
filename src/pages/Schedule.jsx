@@ -123,19 +123,19 @@ export default function Schedule() {
     const total = allIds.length + slotIds.length;
     setProgress({ title: "Clearing Schedule", current: 0, total });
 
-    // Delete games one by one
-    for (let i = 0; i < allIds.length; i++) {
+    // Delete games in batches of 5
+    for (let i = 0; i < allIds.length; i += 5) {
       if (cancelRef.current) break;
-      await base44.entities.Game.delete(allIds[i]);
-      setProgress({ title: "Clearing Schedule", current: i + 1, total });
-      if (i < allIds.length - 1) await new Promise(r => setTimeout(r, 280));
+      await Promise.all(allIds.slice(i, i + 5).map(id => base44.entities.Game.delete(id)));
+      setProgress({ title: "Clearing Schedule", current: Math.min(i + 5, allIds.length), total });
+      if (i + 5 < allIds.length) await new Promise(r => setTimeout(r, 150));
     }
-    // Restore ice slots
-    for (let i = 0; i < slotIds.length; i++) {
+    // Restore ice slots in batches of 5
+    for (let i = 0; i < slotIds.length; i += 5) {
       if (cancelRef.current) break;
-      await base44.entities.IceSlot.update(slotIds[i], { is_available: true });
-      setProgress({ title: "Restoring Ice Slots", current: allIds.length + i + 1, total });
-      if (i < slotIds.length - 1) await new Promise(r => setTimeout(r, 280));
+      await Promise.all(slotIds.slice(i, i + 5).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
+      setProgress({ title: "Restoring Ice Slots", current: allIds.length + Math.min(i + 5, slotIds.length), total });
+      if (i + 5 < slotIds.length) await new Promise(r => setTimeout(r, 150));
     }
     setProgress(null);
     setGames([]);
