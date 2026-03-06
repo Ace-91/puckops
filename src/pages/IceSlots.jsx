@@ -210,29 +210,32 @@ export default function IceSlots() {
     await loadAll();
   };
 
-  // Unassign selected slots (mark available=true, clear game link)
+  // Unassign selected slots — mark available, clear game link if found
   const unassignSelected = async () => {
     const usedSelected = [...selectedIds].filter(id => {
       const slot = slots.find(s => s.id === id);
       return slot && !slot.is_available;
     });
-    if (usedSelected.length === 0) { alert("No used (assigned) slots in selection."); return; }
-    if (!confirm(`Unassign ${usedSelected.length} slot(s)? Games using these slots will also have their ice slot reference cleared.`)) return;
+    if (usedSelected.length === 0) { alert("No used (assigned) slots selected."); return; }
+    if (!confirm(`Mark ${usedSelected.length} slot(s) as available again? Any linked games will have their ice slot reference cleared.`)) return;
 
     setProgress({ title: "Unassigning Ice Slots", current: 0, total: usedSelected.length });
-    // Find games linked to these slots
-    const linkedGames = games.filter(g => usedSelected.includes(g.ice_slot_id));
-    // Clear game's ice_slot_id
     const CHUNK = 10;
-    for (let i = 0; i < linkedGames.length; i += CHUNK) {
-      await Promise.all(linkedGames.slice(i, i + CHUNK).map(g => base44.entities.Game.update(g.id, { ice_slot_id: "" })));
-      if (i + CHUNK < linkedGames.length) await new Promise(r => setTimeout(r, 150));
-    }
-    // Mark slots available
-    for (let i = 0; i < usedSelected.length; i += CHUNK) {
-      await Promise.all(usedSelected.slice(i, i + CHUNK).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
-      if (i + CHUNK < usedSelected.length) await new Promise(r => setTimeout(r, 150));
-      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, usedSelected.length) }));
+
+    for (let i = 0; i < usedSelected.length; i++) {
+      const slotId = usedSelected[i];
+      const slot = slots.find(s => s.id === slotId);
+      // Find games linked by ice_slot_id OR by matching arena+date+time
+      const linkedGames = games.filter(g =>
+        g.ice_slot_id === slotId ||
+        (slot && g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+      );
+      for (const g of linkedGames) {
+        await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+      }
+      await base44.entities.IceSlot.update(slotId, { is_available: true });
+      setProgress(p => ({ ...p, current: i + 1 }));
+      if ((i + 1) % CHUNK === 0 && i + 1 < usedSelected.length) await new Promise(r => setTimeout(r, 150));
     }
     setProgress(null);
     await loadAll();
