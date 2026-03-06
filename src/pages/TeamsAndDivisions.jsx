@@ -68,7 +68,7 @@ export default function TeamsAndDivisions() {
     const lines = text.trim().split("\n").filter(l => l.trim());
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
     const dataLines = lines.slice(1);
-    let created = 0, skipped = 0, errors = [];
+    let created = 0, updated = 0, skipped = 0, errors = [];
     const currentDivs = [...divisions];
 
     setImportProgress({ current: 0, total: dataLines.length, done: false });
@@ -528,7 +528,7 @@ export default function TeamsAndDivisions() {
             {importResult && !importing && (
               <div className={`mt-3 rounded-lg p-3 text-sm border ${importResult.errors?.length ? "border-yellow-500/20 text-yellow-300" : "border-green-500/20 text-green-300"}`}
                 style={{ background: importResult.errors?.length ? "#1a1000" : "#001a00" }}>
-                ✓ {importResult.created} teams imported{importResult.skipped > 0 ? `, ${importResult.skipped} skipped` : ""}.
+                ✓ {importResult.created} created{importResult.updated > 0 ? `, ${importResult.updated} updated` : ""}{importResult.skipped > 0 ? `, ${importResult.skipped} skipped` : ""}.
                 {importResult.errors?.length > 0 && <div className="mt-1 text-xs opacity-80">{importResult.errors.slice(0, 3).join(" · ")}</div>}
               </div>
             )}
