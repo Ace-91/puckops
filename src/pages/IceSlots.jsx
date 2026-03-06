@@ -1,28 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, Clock, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw, Filter } from "lucide-react";
+import { Plus, Trash2, Clock, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
+import { batchDelete, batchUpdate } from "@/components/batchOps";
 
 function addOneHour(time) {
   if (!time) return "";
   const [h, m] = time.split(":").map(Number);
   const total = h * 60 + m + 60;
   return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-function ImportProgress({ total, current, done }) {
-  const pct = total > 0 ? Math.round((current / total) * 100) : 0;
-  return (
-    <div className="mt-3">
-      <div className="flex justify-between text-xs text-gray-400 mb-1">
-        <span>{done ? "Import complete!" : `Importing ${current} of ${total}...`}</span>
-        <span>{pct}%</span>
-      </div>
-      <div className="w-full bg-gray-800 rounded-full h-2">
-        <div className="h-2 rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: "linear-gradient(90deg,#c0c0c0,#d4af37)" }} />
-      </div>
-    </div>
-  );
 }
 
 const isLate = (time) => {
@@ -40,7 +26,7 @@ export default function IceSlots() {
   const [showSlotForm, setShowSlotForm] = useState(false);
   const [filterArena, setFilterArena] = useState("all");
   const [filterDate, setFilterDate] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all"); // all | available | used
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const [arenaForm, setArenaForm] = useState({ name: "", address: "" });
   const [slotForm, setSlotForm] = useState({ arena_id: "", date: "", start_time: "", season: "2025-2026" });
@@ -51,15 +37,28 @@ export default function IceSlots() {
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [csvFile, setCsvFile] = useState(null);
   const [csvImporting, setCsvImporting] = useState(false);
-  const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0, done: false });
+  const [csvProgress, setCsvProgress] = useState({ current: 0, total: 0 });
   const [csvResult, setCsvResult] = useState(null);
 
   const [selectedIds, setSelectedIds] = useState(new Set());
-
-  // Progress modal state
-  const [progress, setProgress] = useState(null); // { title, current, total }
+  const [progress, setProgress] = useState(null);
+  const cancelRef = useRef(false);
 
   useEffect(() => { loadAll(); }, []);
+
+  const loadAll = async () => {
+    setLoading(true);
+    const [a, s, g] = await Promise.all([
+      base44.entities.Arena.list(),
+      base44.entities.IceSlot.list("date", 5000),
+      base44.entities.Game.list("date", 2000),
+    ]);
+    setArenas(a);
+    setSlots(s);
+    setGames(g);
+    setSelectedIds(new Set());
+    setLoading(false);
+  };
 
   const downloadSlotsTemplate = () => {
     const csv = "arena_name,date,start_time,season\nArena 1,2025-10-01,19:00,2025-2026\nArena 1,2025-10-03,22:00,2025-2026";
@@ -69,6 +68,7 @@ export default function IceSlots() {
     URL.revokeObjectURL(url);
   };
 
+  // CSV Import with duplicate check (overwrite existing by arena+date+time)
   const handleCsvImport = async () => {
     if (!csvFile) return;
     setCsvImporting(true);
@@ -77,56 +77,52 @@ export default function IceSlots() {
     const lines = text.trim().split("\n").filter(l => l.trim());
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
     const dataLines = lines.slice(1);
-    let created = 0, skipped = 0;
-    const slotsToCreate = [];
+    let created = 0, updated = 0, skipped = 0;
 
-    setCsvProgress({ current: 0, total: dataLines.length, done: false });
+    setCsvProgress({ current: 0, total: dataLines.length });
 
     for (let i = 0; i < dataLines.length; i++) {
       const cols = dataLines[i].split(",").map(c => c.trim());
       const row = {};
       headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
-      if (!row.date || !row.start_time) { skipped++; continue; }
+      if (!row.date || !row.start_time) { skipped++; setCsvProgress({ current: i + 1, total: dataLines.length }); continue; }
+
       const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
-      const startTime = row.start_time;
-      slotsToCreate.push({
+      const slotData = {
         arena_id: arena?.id || "",
         arena_name: arena?.name || row.arena_name || "",
         date: row.date,
-        start_time: startTime,
-        end_time: addOneHour(startTime),
+        start_time: row.start_time,
+        end_time: addOneHour(row.start_time),
         season: row.season || "2025-2026",
-        is_late_game: isLate(startTime),
+        is_late_game: isLate(row.start_time),
         is_available: true,
-      });
-      created++;
-      setCsvProgress({ current: i + 1, total: dataLines.length, done: false });
+      };
+
+      // Check for duplicate (same arena + date + start_time)
+      const existing = slots.find(s =>
+        s.arena_name?.toLowerCase() === slotData.arena_name.toLowerCase() &&
+        s.date === slotData.date &&
+        s.start_time === slotData.start_time
+      );
+
+      if (existing) {
+        await base44.entities.IceSlot.update(existing.id, slotData);
+        updated++;
+      } else {
+        const created_ = await base44.entities.IceSlot.create(slotData);
+        // keep local slots updated for subsequent duplicate checks
+        slots.push(created_);
+        created++;
+      }
+
+      setCsvProgress({ current: i + 1, total: dataLines.length });
+      await new Promise(r => setTimeout(r, 200));
     }
 
-    const CHUNK = 50;
-    for (let i = 0; i < slotsToCreate.length; i += CHUNK) {
-      await base44.entities.IceSlot.bulkCreate(slotsToCreate.slice(i, i + CHUNK));
-      setCsvProgress({ current: Math.min(i + CHUNK, slotsToCreate.length), total: slotsToCreate.length, done: i + CHUNK >= slotsToCreate.length });
-    }
-    if (slotsToCreate.length === 0) setCsvProgress({ current: 0, total: 0, done: true });
-
-    setCsvResult({ created, skipped });
+    setCsvResult({ created, updated, skipped });
     setCsvImporting(false);
     loadAll();
-  };
-
-  const loadAll = async () => {
-    setLoading(true);
-    const [a, s, g] = await Promise.all([
-      base44.entities.Arena.list(),
-      base44.entities.IceSlot.list("date", 2000),
-      base44.entities.Game.filter({ status: "scheduled" }),
-    ]);
-    setArenas(a);
-    setSlots(s);
-    setGames(g);
-    setSelectedIds(new Set());
-    setLoading(false);
   };
 
   const saveArena = async () => {
@@ -143,13 +139,25 @@ export default function IceSlots() {
   };
 
   const saveSlot = async () => {
-    await base44.entities.IceSlot.create({
+    const arena = arenas.find(a => a.id === slotForm.arena_id);
+    // Check duplicate
+    const existing = slots.find(s =>
+      s.arena_id === slotForm.arena_id &&
+      s.date === slotForm.date &&
+      s.start_time === slotForm.start_time
+    );
+    const data = {
       ...slotForm,
       end_time: addOneHour(slotForm.start_time),
-      arena_name: arenas.find(a => a.id === slotForm.arena_id)?.name,
+      arena_name: arena?.name,
       is_late_game: isLate(slotForm.start_time),
       is_available: true,
-    });
+    };
+    if (existing) {
+      await base44.entities.IceSlot.update(existing.id, data);
+    } else {
+      await base44.entities.IceSlot.create(data);
+    }
     setShowSlotForm(false);
     setSlotForm({ arena_id: "", date: "", start_time: "", season: "2025-2026" });
     loadAll();
@@ -162,80 +170,107 @@ export default function IceSlots() {
     const end = new Date(bulkForm.end_date + "T12:00:00");
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       if (bulkForm.days_of_week.includes(String(d.getDay()))) {
-        slotsToCreate.push({
-          arena_id: bulkForm.arena_id,
-          arena_name: arena?.name,
-          date: d.toISOString().split("T")[0],
-          start_time: bulkForm.start_time,
-          end_time: addOneHour(bulkForm.start_time),
-          season: bulkForm.season,
-          is_late_game: isLate(bulkForm.start_time),
-          is_available: true,
-        });
+        const dateStr = d.toISOString().split("T")[0];
+        // skip duplicates
+        const dup = slots.find(s => s.arena_id === bulkForm.arena_id && s.date === dateStr && s.start_time === bulkForm.start_time);
+        if (!dup) {
+          slotsToCreate.push({
+            arena_id: bulkForm.arena_id,
+            arena_name: arena?.name,
+            date: dateStr,
+            start_time: bulkForm.start_time,
+            end_time: addOneHour(bulkForm.start_time),
+            season: bulkForm.season,
+            is_late_game: isLate(bulkForm.start_time),
+            is_available: true,
+          });
+        }
       }
     }
-    if (slotsToCreate.length === 0) { alert("No slots to create with those settings."); return; }
-
+    if (slotsToCreate.length === 0) { alert("No new slots to create (all may already exist)."); return; }
     setBulkMode(false);
+    cancelRef.current = false;
     setProgress({ title: "Creating Ice Slots", current: 0, total: slotsToCreate.length });
-    const CHUNK = 50;
-    for (let i = 0; i < slotsToCreate.length; i += CHUNK) {
-      await base44.entities.IceSlot.bulkCreate(slotsToCreate.slice(i, i + CHUNK));
-      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, slotsToCreate.length) }));
-    }
+    await batchUpdate(
+      slotsToCreate,
+      (slot) => base44.entities.IceSlot.create(slot),
+      (cur, tot) => setProgress({ title: "Creating Ice Slots", current: cur, total: tot }),
+      cancelRef,
+      200
+    );
     setProgress(null);
     loadAll();
   };
 
   // Delete a single slot
-  const deleteSlot = async (id) => {
-    await base44.entities.IceSlot.delete(id);
-    setSlots(prev => prev.filter(s => s.id !== id));
-    setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
+  const deleteSlot = async (slot) => {
+    if (!confirm("Delete this slot?")) return;
+    // If used, clear game reference first
+    const linked = games.filter(g =>
+      g.ice_slot_id === slot.id ||
+      (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+    );
+    for (const g of linked) await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+    await base44.entities.IceSlot.delete(slot.id);
+    setSlots(prev => prev.filter(s => s.id !== slot.id));
+    setSelectedIds(prev => { const n = new Set(prev); n.delete(slot.id); return n; });
   };
 
-  // Delete selected slots with progress modal
+  // Delete selected — sequential, cancel-able
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
-    if (!confirm(`Delete ${selectedIds.size} selected slot(s)? This cannot be undone.`)) return;
+    if (!confirm(`Delete ${selectedIds.size} slot(s)? Game references will also be cleared.`)) return;
     const ids = [...selectedIds];
+    cancelRef.current = false;
     setProgress({ title: "Deleting Ice Slots", current: 0, total: ids.length });
-    const CHUNK = 10;
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      await Promise.all(ids.slice(i, i + CHUNK).map(id => base44.entities.IceSlot.delete(id)));
-      if (i + CHUNK < ids.length) await new Promise(r => setTimeout(r, 150));
-      setProgress(p => ({ ...p, current: Math.min(i + CHUNK, ids.length) }));
+
+    for (let i = 0; i < ids.length; i++) {
+      if (cancelRef.current) break;
+      const slot = slots.find(s => s.id === ids[i]);
+      if (slot) {
+        const linked = games.filter(g =>
+          g.ice_slot_id === slot.id ||
+          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+        );
+        for (const g of linked) await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+      }
+      await base44.entities.IceSlot.delete(ids[i]);
+      setProgress({ title: "Deleting Ice Slots", current: i + 1, total: ids.length });
+      if (i < ids.length - 1) await new Promise(r => setTimeout(r, 300));
     }
     setProgress(null);
     await loadAll();
   };
 
-  // Unassign selected slots — mark available, clear game link if found
+  // Unassign: mark available + clear game ice_slot_id
   const unassignSelected = async () => {
     const usedSelected = [...selectedIds].filter(id => {
       const slot = slots.find(s => s.id === id);
       return slot && !slot.is_available;
     });
-    if (usedSelected.length === 0) { alert("No used (assigned) slots selected."); return; }
-    if (!confirm(`Mark ${usedSelected.length} slot(s) as available again? Any linked games will have their ice slot reference cleared.`)) return;
+    if (usedSelected.length === 0) { alert("No used slots selected."); return; }
+    if (!confirm(`Mark ${usedSelected.length} slot(s) as available? Game assignments referencing these slots will be cleared.`)) return;
 
+    cancelRef.current = false;
     setProgress({ title: "Unassigning Ice Slots", current: 0, total: usedSelected.length });
-    const CHUNK = 10;
 
     for (let i = 0; i < usedSelected.length; i++) {
+      if (cancelRef.current) break;
       const slotId = usedSelected[i];
       const slot = slots.find(s => s.id === slotId);
-      // Find games linked by ice_slot_id OR by matching arena+date+time
-      const linkedGames = games.filter(g =>
-        g.ice_slot_id === slotId ||
-        (slot && g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
-      );
-      for (const g of linkedGames) {
-        await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+      if (slot) {
+        const linked = games.filter(g =>
+          g.ice_slot_id === slotId ||
+          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+        );
+        for (const g of linked) {
+          await base44.entities.Game.update(g.id, { ice_slot_id: "", arena_id: "", arena_name: "" });
+          await new Promise(r => setTimeout(r, 200));
+        }
       }
       await base44.entities.IceSlot.update(slotId, { is_available: true });
-      setProgress(p => ({ ...p, current: i + 1 }));
-      if ((i + 1) % CHUNK === 0 && i + 1 < usedSelected.length) await new Promise(r => setTimeout(r, 150));
+      setProgress({ title: "Unassigning Ice Slots", current: i + 1, total: usedSelected.length });
+      if (i < usedSelected.length - 1) await new Promise(r => setTimeout(r, 300));
     }
     setProgress(null);
     await loadAll();
@@ -258,20 +293,28 @@ export default function IceSlots() {
   const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const usedCount = slots.filter(s => !s.is_available).length;
   const availableCount = slots.filter(s => s.is_available).length;
+  const selectedUsed = [...selectedIds].filter(id => !slots.find(s => s.id === id)?.is_available).length;
 
   return (
     <div>
-      {progress && <ProgressModal title={progress.title} current={progress.current} total={progress.total} />}
+      {progress && (
+        <ProgressModal
+          title={progress.title}
+          current={progress.current}
+          total={progress.total}
+          onCancel={() => { cancelRef.current = true; }}
+        />
+      )}
 
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Ice Slots & Arenas</h1>
           <p className="text-gray-400 text-sm mt-1">
-            {arenas.length} arenas · {availableCount} available · {usedCount} used
+            {arenas.length} arenas · <span className="text-green-400">{availableCount} available</span> · <span className="text-gray-500">{usedCount} used</span> · {slots.length} total
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); setCsvProgress({ current: 0, total: 0, done: false }); }}
+          <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); setCsvProgress({ current: 0, total: 0 }); }}
             className="flex items-center gap-2 text-black px-3 py-2 rounded-lg text-sm font-medium" style={{ background: "#c0c0c0" }}>
             <Upload className="w-4 h-4" /> Import CSV
           </button>
@@ -288,13 +331,16 @@ export default function IceSlots() {
       </div>
 
       {/* Arenas */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {arenas.map(a => (
           <div key={a.id} className="rounded-lg p-3 border border-gray-800 flex items-center justify-between" style={{ background: "#111" }}>
             <div>
               <div className="text-sm font-medium text-white flex items-center gap-1"><MapPin className="w-3.5 h-3.5" style={{ color: "#d4af37" }} /> {a.name}</div>
               {a.address && <div className="text-xs text-gray-500 mt-0.5">{a.address}</div>}
-              <div className="text-xs text-gray-400 mt-1">{slots.filter(s => s.arena_id === a.id).length} slots</div>
+              <div className="text-xs text-gray-400 mt-1">
+                {slots.filter(s => s.arena_id === a.id && s.is_available).length} available /&nbsp;
+                {slots.filter(s => s.arena_id === a.id).length} total
+              </div>
             </div>
             <button onClick={() => deleteArena(a.id)} className="p-1 text-gray-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
           </div>
@@ -318,13 +364,22 @@ export default function IceSlots() {
         </select>
         {filterDate && <button onClick={() => setFilterDate("")} className="text-gray-500 hover:text-white text-sm px-2">Clear date</button>}
 
+        <button onClick={selectAll} className="flex items-center gap-1.5 border border-gray-700 text-gray-400 px-3 py-2 rounded-lg text-sm hover:text-white" style={{ background: "#111" }}>
+          {selectedIds.size === filteredSlots.length && filteredSlots.length > 0
+            ? <CheckSquare className="w-4 h-4" style={{ color: "#d4af37" }} />
+            : <Square className="w-4 h-4" />}
+          {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select All"}
+        </button>
+
         {selectedIds.size > 0 && (
-          <div className="ml-auto flex gap-2">
-            <button onClick={unassignSelected}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border"
-              style={{ borderColor: "#d4af37", color: "#d4af37" }}>
-              <RefreshCw className="w-4 h-4" /> Unassign {selectedIds.size}
-            </button>
+          <div className="flex gap-2">
+            {selectedUsed > 0 && (
+              <button onClick={unassignSelected}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border"
+                style={{ borderColor: "#d4af37", color: "#d4af37" }}>
+                <RefreshCw className="w-4 h-4" /> Unassign {selectedUsed} Used
+              </button>
+            )}
             <button onClick={deleteSelected}
               className="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 px-3 py-2 rounded-lg text-sm font-medium">
               <Trash2 className="w-4 h-4" /> Delete {selectedIds.size}
@@ -333,7 +388,10 @@ export default function IceSlots() {
         )}
       </div>
 
-      <div className="text-xs text-gray-500 mb-2">Showing {Math.min(filteredSlots.length, 200)} of {filteredSlots.length} slots</div>
+      <div className="text-xs text-gray-500 mb-2">
+        Showing {Math.min(filteredSlots.length, 300)} of {filteredSlots.length} slots
+        {filteredSlots.length > 300 && " — use filters to narrow results"}
+      </div>
 
       {loading ? (
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i} className="rounded-lg h-12 animate-pulse" style={{ background: "#111" }} />)}</div>
@@ -352,13 +410,13 @@ export default function IceSlots() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Arena</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Time</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Season</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-900">
-              {filteredSlots.slice(0, 200).map(slot => (
+              {filteredSlots.slice(0, 300).map(slot => (
                 <tr key={slot.id} className={`transition-colors ${selectedIds.has(slot.id) ? "bg-yellow-500/5" : "hover:bg-white/2"}`}>
                   <td className="px-4 py-2.5">
                     <button onClick={() => toggleSelect(slot.id)} className="text-gray-600 hover:text-yellow-400">
@@ -368,41 +426,41 @@ export default function IceSlots() {
                   <td className="px-4 py-2.5 text-sm text-white">{slot.date}</td>
                   <td className="px-4 py-2.5 text-sm text-gray-300">{slot.arena_name}</td>
                   <td className="px-4 py-2.5 text-sm text-gray-300">
-                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-600" />{slot.start_time} – {slot.end_time || addOneHour(slot.start_time)}</span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-gray-600" />
+                      {slot.start_time} – {slot.end_time || addOneHour(slot.start_time)}
+                      {slot.is_late_game && <span className="flex items-center gap-0.5 text-xs text-yellow-400"><Moon className="w-3 h-3" />Late</span>}
+                    </span>
                   </td>
+                  <td className="px-4 py-2.5 text-xs text-gray-600">{slot.season}</td>
                   <td className="px-4 py-2.5">
-                    {slot.is_late_game && <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full w-fit"><Moon className="w-3 h-3" />Late</span>}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${slot.is_available ? "border-green-500/20 text-green-400" : "border-gray-600 text-gray-500"}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${slot.is_available ? "border-green-500/30 text-green-400 bg-green-500/5" : "border-gray-700 text-gray-500 bg-gray-800/30"}`}>
                       {slot.is_available ? "Available" : "Used"}
                     </span>
                   </td>
-                  <td className="px-4 py-2.5 text-right flex items-center justify-end gap-1">
-                    {!slot.is_available && (
-                      <button onClick={async () => {
-                        // Find linked games by slot id OR by arena+date+time match
-                        const linkedGames = games.filter(g =>
-                          g.ice_slot_id === slot.id ||
-                          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
-                        );
-                        for (const g of linkedGames) {
-                          await base44.entities.Game.update(g.id, { ice_slot_id: "" });
-                        }
-                        await base44.entities.IceSlot.update(slot.id, { is_available: true });
-                        setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, is_available: true } : s));
-                      }} className="p-1 text-gray-600 hover:text-yellow-400" title="Mark as available">
-                        <RefreshCw className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                    <button onClick={() => deleteSlot(slot.id)} className="p-1 text-gray-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <td className="px-4 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {!slot.is_available && (
+                        <button onClick={async () => {
+                          const linked = games.filter(g =>
+                            g.ice_slot_id === slot.id ||
+                            (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+                          );
+                          for (const g of linked) await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+                          await base44.entities.IceSlot.update(slot.id, { is_available: true });
+                          setSlots(prev => prev.map(s => s.id === slot.id ? { ...s, is_available: true } : s));
+                        }} className="p-1 text-gray-600 hover:text-yellow-400" title="Mark as available">
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      <button onClick={() => deleteSlot(slot)} className="p-1 text-gray-600 hover:text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
           {filteredSlots.length === 0 && <p className="text-center py-8 text-gray-600">No slots found.</p>}
-          {filteredSlots.length > 200 && <p className="text-center py-3 text-gray-600 text-xs">Showing 200 of {filteredSlots.length} slots. Use filters to narrow results.</p>}
         </div>
       )}
 
@@ -416,7 +474,7 @@ export default function IceSlots() {
             </div>
             <div className="rounded-lg p-3 mb-4 text-xs border" style={{ background: "#1a1a00", borderColor: "#d4af3730", color: "#d4af37" }}>
               Columns: <strong>arena_name, date (YYYY-MM-DD), start_time (HH:MM), season</strong><br />
-              End time is auto-calculated as start + 60 minutes. Arenas must exist in the system.
+              Duplicates (same arena + date + time) will be updated/overwritten, not duplicated.
             </div>
             <button onClick={downloadSlotsTemplate} className="flex items-center gap-2 text-sm mb-4 underline" style={{ color: "#c0c0c0" }}>
               <Download className="w-4 h-4" /> Download template CSV
@@ -424,13 +482,22 @@ export default function IceSlots() {
             <div>
               <label className="text-sm text-gray-400 block mb-1">CSV File *</label>
               <input type="file" accept=".csv" className="w-full text-sm text-gray-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-black file:text-sm file:cursor-pointer cursor-pointer"
-                style={{ '--file-bg': '#c0c0c0' }}
                 onChange={e => setCsvFile(e.target.files[0])} />
             </div>
-            {csvImporting && <ImportProgress total={csvProgress.total} current={csvProgress.current} done={csvProgress.done} />}
+            {csvImporting && (
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-gray-400 mb-1">
+                  <span>Importing {csvProgress.current} of {csvProgress.total}...</span>
+                  <span>{csvProgress.total > 0 ? Math.round((csvProgress.current / csvProgress.total) * 100) : 0}%</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div className="h-2 rounded-full transition-all duration-300" style={{ width: `${csvProgress.total > 0 ? Math.round((csvProgress.current / csvProgress.total) * 100) : 0}%`, background: "linear-gradient(90deg,#c0c0c0,#d4af37)" }} />
+                </div>
+              </div>
+            )}
             {csvResult && !csvImporting && (
               <div className="mt-3 rounded-lg p-3 text-sm border border-green-500/20 text-green-400" style={{ background: "#001a00" }}>
-                ✓ {csvResult.created} slots imported{csvResult.skipped > 0 ? `, ${csvResult.skipped} skipped` : ""}.
+                ✓ {csvResult.created} created · {csvResult.updated} updated{csvResult.skipped > 0 ? ` · ${csvResult.skipped} skipped` : ""}.
               </div>
             )}
             <div className="flex gap-3 mt-5">
@@ -466,7 +533,7 @@ export default function IceSlots() {
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowArenaForm(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
-              <button onClick={saveArena} className="flex-1 py-2 rounded-lg text-sm font-medium text-black" style={{ background: "#d4af37" }}>Save</button>
+              <button onClick={saveArena} disabled={!arenaForm.name} className="flex-1 py-2 rounded-lg text-sm font-medium text-black disabled:opacity-50" style={{ background: "#d4af37" }}>Save</button>
             </div>
           </div>
         </div>
@@ -495,15 +562,21 @@ export default function IceSlots() {
                   value={slotForm.date} onChange={e => setSlotForm(f => ({ ...f, date: e.target.value }))} />
               </div>
               <div>
-                <label className="text-sm text-gray-400 block mb-1">Start Time</label>
+                <label className="text-sm text-gray-400 block mb-1">Start Time *</label>
                 <input type="time" className="w-full bg-black border border-gray-800 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
                   value={slotForm.start_time} onChange={e => setSlotForm(f => ({ ...f, start_time: e.target.value }))} />
                 {slotForm.start_time && <p className="text-xs text-gray-600 mt-1">End time: {addOneHour(slotForm.start_time)}</p>}
               </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Season</label>
+                <input className="w-full bg-black border border-gray-800 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+                  value={slotForm.season} onChange={e => setSlotForm(f => ({ ...f, season: e.target.value }))} />
+              </div>
             </div>
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowSlotForm(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
-              <button onClick={saveSlot} className="flex-1 py-2 rounded-lg text-sm font-medium text-black" style={{ background: "#c0c0c0" }}>Save</button>
+              <button onClick={saveSlot} disabled={!slotForm.arena_id || !slotForm.date || !slotForm.start_time}
+                className="flex-1 py-2 rounded-lg text-sm font-medium text-black disabled:opacity-50" style={{ background: "#c0c0c0" }}>Save</button>
             </div>
           </div>
         </div>
@@ -544,7 +617,7 @@ export default function IceSlots() {
                   {dayNames.map((day, i) => (
                     <button key={i} type="button"
                       onClick={() => setBulkForm(f => ({ ...f, days_of_week: f.days_of_week.includes(String(i)) ? f.days_of_week.filter(d => d !== String(i)) : [...f.days_of_week, String(i)] }))}
-                      className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors text-black"
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium"
                       style={{ background: bulkForm.days_of_week.includes(String(i)) ? "#d4af37" : "#333", color: bulkForm.days_of_week.includes(String(i)) ? "#000" : "#999" }}>
                       {day}
                     </button>
@@ -556,6 +629,11 @@ export default function IceSlots() {
                 <input type="time" className="w-full bg-black border border-gray-800 rounded-lg px-3 py-2 text-white text-sm"
                   value={bulkForm.start_time} onChange={e => setBulkForm(f => ({ ...f, start_time: e.target.value }))} />
                 {bulkForm.start_time && <p className="text-xs text-gray-600 mt-1">End time auto-set to {addOneHour(bulkForm.start_time)}</p>}
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Season</label>
+                <input className="w-full bg-black border border-gray-800 rounded-lg px-3 py-2 text-white text-sm"
+                  value={bulkForm.season} onChange={e => setBulkForm(f => ({ ...f, season: e.target.value }))} />
               </div>
             </div>
             <div className="flex gap-3 mt-4">
