@@ -6,6 +6,7 @@ import {
   Calendar, Users, Shield, Clock, AlertTriangle, Home,
   Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard
 } from "lucide-react";
+import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
 const navItems = [
   { label: "Home", page: "Home", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
@@ -63,10 +64,8 @@ export default function Layout({ children, currentPageName }) {
             <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg" style={{ background: "linear-gradient(135deg, #d4af37, #c0c0c0)" }}>
-                🏒
-              </div>
+            <Link to={createPageUrl("Home")} className="flex items-center gap-2.5">
+              <HockeyOpsLogo size={36} />
               <div className="hidden sm:block">
                 <span className="font-bold text-lg" style={{ color: SILVER }}>Hockey</span>
                 <span className="font-bold text-lg" style={{ color: GOLD }}>Ops</span>
