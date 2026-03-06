@@ -202,15 +202,11 @@ export default function IceSlots() {
     }
     if (slotsToCreate.length === 0) { alert("No new slots to create (all may already exist)."); return; }
     setBulkMode(false);
-    cancelRef.current = false;
     setProgress({ title: "Creating Ice Slots", current: 0, total: slotsToCreate.length });
-    await batchUpdate(
-      slotsToCreate,
-      (slot) => base44.entities.IceSlot.create(slot),
-      (cur, tot) => setProgress({ title: "Creating Ice Slots", current: cur, total: tot }),
-      cancelRef,
-      200
-    );
+    // bulkCreate sends all in one API call
+    await base44.entities.IceSlot.bulkCreate(slotsToCreate);
+    setProgress({ title: "Creating Ice Slots", current: slotsToCreate.length, total: slotsToCreate.length });
+    await new Promise(r => setTimeout(r, 400));
     setProgress(null);
     loadAll();
   };
