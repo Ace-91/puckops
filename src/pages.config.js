@@ -47,30 +47,30 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AssignOfficials from './pages/AssignOfficials';
+import BlackoutDates from './pages/BlackoutDates';
 import Dashboard from './pages/Dashboard';
-import TeamsAndDivisions from './pages/TeamsAndDivisions';
+import Forfeits from './pages/Forfeits';
 import IceSlots from './pages/IceSlots';
+import OfficialAvailability from './pages/OfficialAvailability';
+import Officials from './pages/Officials';
 import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
-import BlackoutDates from './pages/BlackoutDates';
-import Officials from './pages/Officials';
-import OfficialAvailability from './pages/OfficialAvailability';
-import AssignOfficials from './pages/AssignOfficials';
-import Forfeits from './pages/Forfeits';
+import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AssignOfficials": AssignOfficials,
+    "BlackoutDates": BlackoutDates,
     "Dashboard": Dashboard,
-    "TeamsAndDivisions": TeamsAndDivisions,
+    "Forfeits": Forfeits,
     "IceSlots": IceSlots,
+    "OfficialAvailability": OfficialAvailability,
+    "Officials": Officials,
     "Schedule": Schedule,
     "ScheduleBuilder": ScheduleBuilder,
-    "BlackoutDates": BlackoutDates,
-    "Officials": Officials,
-    "OfficialAvailability": OfficialAvailability,
-    "AssignOfficials": AssignOfficials,
-    "Forfeits": Forfeits,
+    "TeamsAndDivisions": TeamsAndDivisions,
 }
 
 export const pagesConfig = {
