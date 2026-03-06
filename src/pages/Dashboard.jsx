@@ -169,6 +169,32 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Admin Workflow Guide */}
+      {isAdmin && (
+        <div className="rounded-xl border p-5" style={{ background: "#0a0a0a", borderColor: `${GOLD}40` }}>
+          <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <span style={{ color: GOLD }}>⚡</span> Season Setup Workflow
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[
+              { step: "1", label: "Teams & Divisions", desc: "Add divisions and import teams via CSV", page: "TeamsAndDivisions", color: SILVER },
+              { step: "2", label: "Ice Slots", desc: "Import arena time slots via CSV or bulk add", page: "IceSlots", color: SILVER },
+              { step: "3", label: "Build Schedule", desc: "Auto-generate the season schedule", page: "ScheduleBuilder", color: GOLD },
+              { step: "4", label: "Assign Officials", desc: "Assign refs & timekeepers to games", page: "AssignOfficials", color: SILVER },
+              { step: "5", label: "Manage Season", desc: "Track forfeits, blackouts & changes", page: "Schedule", color: SILVER },
+            ].map(({ step, label, desc, page, color }) => (
+              <Link key={step} to={createPageUrl(page)}
+                className="rounded-xl border p-4 transition-all hover:scale-105 flex flex-col gap-1"
+                style={{ background: "#111", borderColor: "#2a2a2a" }}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black mb-1" style={{ background: color }}>{step}</div>
+                <div className="text-sm font-semibold text-white">{label}</div>
+                <div className="text-xs text-gray-500 leading-relaxed">{desc}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* News / Updates */}
       <div className="rounded-xl border p-5" style={{ background: "#0a0a0a", borderColor: "#2a2a2a" }}>
         <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
