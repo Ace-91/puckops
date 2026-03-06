@@ -4,11 +4,12 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import {
   Calendar, Users, Shield, Clock, AlertTriangle, Home,
-  Menu, X, ChevronDown, LogOut, Settings, Layers
+  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard", page: "Dashboard", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
+  { label: "Home", page: "Home", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
+  { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Schedule", page: "Schedule", icon: Calendar, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "My Portal", page: "OfficialPortal", icon: Shield, roles: ["referee", "timekeeper"] },
   { label: "Teams & Divisions", page: "TeamsAndDivisions", icon: Layers, roles: ["admin"] },
