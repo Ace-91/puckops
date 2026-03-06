@@ -57,6 +57,10 @@ import Officials from './pages/Officials';
 import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
+import UserManagement from './pages/UserManagement';
+import OfficialPortal from './pages/OfficialPortal';
+import PublicForfeitForm from './pages/PublicForfeitForm';
+import PublicBlackoutForm from './pages/PublicBlackoutForm';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +75,10 @@ export const PAGES = {
     "Schedule": Schedule,
     "ScheduleBuilder": ScheduleBuilder,
     "TeamsAndDivisions": TeamsAndDivisions,
+    "UserManagement": UserManagement,
+    "OfficialPortal": OfficialPortal,
+    "PublicForfeitForm": PublicForfeitForm,
+    "PublicBlackoutForm": PublicBlackoutForm,
 }
 
 export const pagesConfig = {

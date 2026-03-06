@@ -10,6 +10,7 @@ import {
 const navItems = [
   { label: "Dashboard", page: "Dashboard", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Schedule", page: "Schedule", icon: Calendar, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
+  { label: "My Portal", page: "OfficialPortal", icon: Shield, roles: ["referee", "timekeeper"] },
   { label: "Teams & Divisions", page: "TeamsAndDivisions", icon: Layers, roles: ["admin"] },
   { label: "Ice Slots & Arenas", page: "IceSlots", icon: Clock, roles: ["admin"] },
   { label: "Schedule Builder", page: "ScheduleBuilder", icon: Settings, roles: ["admin"] },
@@ -18,6 +19,7 @@ const navItems = [
   { label: "Official Availability", page: "OfficialAvailability", icon: Calendar, roles: ["referee", "timekeeper"] },
   { label: "Assign Officials", page: "AssignOfficials", icon: Users, roles: ["admin", "referee_coordinator"] },
   { label: "Forfeits", page: "Forfeits", icon: AlertTriangle, roles: ["admin", "referee_coordinator", "team_manager"] },
+  { label: "User Management", page: "UserManagement", icon: Users, roles: ["admin"] },
 ];
 
 export default function Layout({ children, currentPageName }) {
