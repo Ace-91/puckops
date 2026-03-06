@@ -68,73 +68,72 @@ export default function IceSlots() {
     URL.revokeObjectURL(url);
   };
 
-  // CSV Import with duplicate check (overwrite existing by arena+date+time)
+  // CSV Import — bulkCreate new slots in one shot, batch-update duplicates
   const handleCsvImport = async () => {
     if (!csvFile) return;
     setCsvImporting(true);
     setCsvResult(null);
+
     const text = await csvFile.text();
     const lines = text.trim().split("\n").filter(l => l.trim());
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
     const dataLines = lines.slice(1);
-    let created = 0, updated = 0, skipped = 0;
-    // Keep a local copy for duplicate checking without mutating state
-    const localSlots = [...slots];
 
-    setCsvProgress({ current: 0, total: dataLines.length });
+    let skipped = 0;
+    const toCreate = [];
+    const toUpdate = [];
 
-    // Parse all rows first
-    const rows = dataLines.map(line => {
+    for (const line of dataLines) {
       const cols = line.split(",").map(c => c.trim());
       const row = {};
       headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
-      return row;
-    });
+      if (!row.date || !row.start_time) { skipped++; continue; }
 
-    // Process in batches of 3 with 500ms between batches to avoid rate limits
-    const BATCH_SIZE = 3;
-    const BATCH_DELAY = 500;
-    let processed = 0;
+      const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
+      const slotData = {
+        arena_id: arena?.id || "",
+        arena_name: arena?.name || row.arena_name || "",
+        date: row.date,
+        start_time: row.start_time,
+        end_time: addOneHour(row.start_time),
+        season: row.season || "2025-2026",
+        is_late_game: isLate(row.start_time),
+        is_available: true,
+      };
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
-      await Promise.all(batch.map(async (row) => {
-        if (!row.date || !row.start_time) { skipped++; return; }
+      const existing = slots.find(s =>
+        s.arena_name?.toLowerCase() === slotData.arena_name.toLowerCase() &&
+        s.date === slotData.date &&
+        s.start_time === slotData.start_time
+      );
 
-        const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
-        const slotData = {
-          arena_id: arena?.id || "",
-          arena_name: arena?.name || row.arena_name || "",
-          date: row.date,
-          start_time: row.start_time,
-          end_time: addOneHour(row.start_time),
-          season: row.season || "2025-2026",
-          is_late_game: isLate(row.start_time),
-          is_available: true,
-        };
-
-        const existing = localSlots.find(s =>
-          s.arena_name?.toLowerCase() === slotData.arena_name.toLowerCase() &&
-          s.date === slotData.date &&
-          s.start_time === slotData.start_time
-        );
-
-        if (existing) {
-          await base44.entities.IceSlot.update(existing.id, slotData);
-          updated++;
-        } else {
-          const created_ = await base44.entities.IceSlot.create(slotData);
-          localSlots.push(created_);
-          created++;
-        }
-      }));
-
-      processed = Math.min(i + BATCH_SIZE, rows.length);
-      setCsvProgress({ current: processed, total: rows.length });
-      if (i + BATCH_SIZE < rows.length) await new Promise(r => setTimeout(r, BATCH_DELAY));
+      if (existing) {
+        toUpdate.push({ id: existing.id, data: slotData });
+      } else {
+        toCreate.push(slotData);
+      }
     }
 
-    setCsvResult({ created, updated, skipped });
+    const total = toCreate.length + toUpdate.length;
+    setCsvProgress({ current: 0, total });
+
+    // Bulk-create all new slots in ONE API call
+    if (toCreate.length > 0) {
+      await base44.entities.IceSlot.bulkCreate(toCreate);
+      setCsvProgress({ current: toCreate.length, total });
+    }
+
+    // Update duplicates in batches of 5
+    let updated = 0;
+    for (let i = 0; i < toUpdate.length; i += 5) {
+      const chunk = toUpdate.slice(i, i + 5);
+      await Promise.all(chunk.map(({ id, data }) => base44.entities.IceSlot.update(id, data)));
+      updated += chunk.length;
+      setCsvProgress({ current: toCreate.length + updated, total });
+      if (i + 5 < toUpdate.length) await new Promise(r => setTimeout(r, 300));
+    }
+
+    setCsvResult({ created: toCreate.length, updated, skipped });
     setCsvImporting(false);
     loadAll();
   };
