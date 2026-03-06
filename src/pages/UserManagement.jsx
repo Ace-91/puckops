@@ -220,6 +220,22 @@ export default function UserManagement() {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                   {(() => {
+                     const official = officials.find(o => o.user_email?.toLowerCase() === u.email?.toLowerCase());
+                     if (!official) return <span className="text-xs text-gray-600">—</span>;
+                     return (
+                       <div className="flex items-center gap-1.5">
+                         <span className={`text-xs px-2 py-0.5 rounded-full border ${official.role === "referee" ? "border-green-500/20 text-green-400 bg-green-500/5" : "border-orange-500/20 text-orange-400 bg-orange-500/5"}`}>
+                           {official.role === "referee" ? "Referee" : "Timekeeper"}
+                         </span>
+                         {official.certification_level && (
+                           <span className="text-xs text-gray-500">{official.certification_level.toUpperCase()}</span>
+                         )}
+                       </div>
+                     );
+                   })()}
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-600">{u.created_date?.split("T")[0]}</td>
                   <td className="px-4 py-3 text-right">
                    {editingId === u.id ? (
