@@ -119,10 +119,10 @@ export default function Schedule() {
     const allIds = games.map(g => g.id);
     setProgress({ title: "Deleting All Schedule Games", current: 0, total: allIds.length + slotIds.length });
 
-    const CHUNK = 10;
+    const CHUNK = 5;
     for (let i = 0; i < allIds.length; i += CHUNK) {
       await Promise.all(allIds.slice(i, i + CHUNK).map(id => base44.entities.Game.delete(id)));
-      if (i + CHUNK < allIds.length) await new Promise(r => setTimeout(r, 150));
+      await new Promise(r => setTimeout(r, 350));
       setProgress(p => ({ ...p, current: Math.min(i + CHUNK, allIds.length) }));
     }
     // Restore ice slots — smaller chunks with longer delay to avoid rate limits
