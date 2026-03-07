@@ -183,7 +183,8 @@ export default function Officials() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="text-sm text-gray-400 block mb-1">{f.label}</label>
-                  <input type={f.type} className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  <input type={f.type} className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+                    style={{ borderColor: "#333" }}
                     value={form[f.key]} onChange={e => setForm(ff => ({ ...ff, [f.key]: e.target.value }))} />
                 </div>
               ))}
