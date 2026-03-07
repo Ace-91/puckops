@@ -108,7 +108,10 @@ export default function Officials() {
       <div className="flex gap-3 mb-4">
         {["all", "referee", "timekeeper"].map(r => (
           <button key={r} onClick={() => setFilterRole(r)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize ${filterRole === r ? "bg-sky-500 text-white" : "bg-[#1e2533] text-gray-400 border border-gray-700 hover:border-sky-500"}`}>
+            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize border"
+            style={filterRole === r
+              ? { background: GOLD, color: "#000", borderColor: GOLD }
+              : { background: "#111", color: "#999", borderColor: "#333" }}>
             {r === "all" ? "All" : r === "referee" ? `Referees (${refs.length})` : `Timekeepers (${tks.length})`}
           </button>
         ))}
