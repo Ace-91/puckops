@@ -252,15 +252,15 @@ export default function ScheduleBuilder() {
   const saveSchedule = async () => {
     if (!preview.length) return;
     setGenerating(true);
-    const CHUNK = 20;
+    const CHUNK = 10;
     for (let i = 0; i < preview.length; i += CHUNK) {
       await base44.entities.Game.bulkCreate(preview.slice(i, i + CHUNK));
-      if (i + CHUNK < preview.length) await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 2000));
     }
     const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
-    for (let i = 0; i < slotIds.length; i += 10) {
-      await Promise.all(slotIds.slice(i, i + 10).map(id => base44.entities.IceSlot.update(id, { is_available: false })));
-      if (i + 10 < slotIds.length) await new Promise(r => setTimeout(r, 1000));
+    for (let i = 0; i < slotIds.length; i += 5) {
+      await Promise.all(slotIds.slice(i, i + 5).map(id => base44.entities.IceSlot.update(id, { is_available: false })));
+      await new Promise(r => setTimeout(r, 2000));
     }
     setResult({ saved: true, count: preview.length });
     setPreview([]); setStats(null); setWarnings([]);
