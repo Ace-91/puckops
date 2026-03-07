@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import ProgressModal from "@/components/ProgressModal";
 import { createPageUrl } from "@/utils";
-import { Calendar, Users, Shield, AlertTriangle, Clock, TrendingUp, ChevronRight, Settings, Globe, Trash2, Plus, X, CheckCircle, ChevronDown, ChevronUp, LogIn, UserPlus, Newspaper } from "lucide-react";
+import { Calendar, Users, Shield, AlertTriangle, Clock, TrendingUp, ChevronRight, Settings, Globe, Trash2, Plus, X, CheckCircle, ChevronDown, ChevronUp, LogIn, UserPlus, Newspaper, CheckSquare, XSquare } from "lucide-react";
 
 const NEWS_ITEMS = [
   { date: "2026-03-06", title: "Late Game Distribution", body: "Schedules now automatically balance 10 pm+ games evenly across all teams." },
