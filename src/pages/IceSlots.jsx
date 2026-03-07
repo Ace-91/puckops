@@ -60,6 +60,16 @@ export default function IceSlots() {
     setLoading(false);
   };
 
+  const exportSlotsCSV = () => {
+    const rows = [["arena_name", "date", "start_time", "end_time", "season", "is_available", "is_late_game"]];
+    slots.forEach(s => rows.push([s.arena_name, s.date, s.start_time, s.end_time || "", s.season || "", s.is_available ? "yes" : "no", s.is_late_game ? "yes" : "no"]));
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "iceslots_export.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadSlotsTemplate = () => {
     const csv = "arena_name,date,start_time,season\nArena 1,2025-10-01,19:00,2025-2026\nArena 1,2025-10-03,22:00,2025-2026";
     const blob = new Blob([csv], { type: "text/csv" });

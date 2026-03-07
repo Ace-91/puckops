@@ -53,6 +53,29 @@ export default function TeamsAndDivisions() {
 
   useEffect(() => { loadAll(); }, []);
 
+  const exportTeamsCSV = () => {
+    const rows = [["division_name", "team_name", "manager_name", "manager_email", "manager_phone", "season"]];
+    teams.forEach(t => rows.push([t.division_name || "", t.name, t.manager_name || "", t.manager_email || "", t.manager_phone || "", t.season || ""]));
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "teams_export.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportDivisionsCSV = () => {
+    const rows = [["division_name", "level", "season", "games_per_team", "team_count"]];
+    divisions.forEach(d => {
+      const count = teams.filter(t => t.division_id === d.id).length;
+      rows.push([d.name, d.level || "", d.season || "", d.games_per_team || 30, count]);
+    });
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "divisions_export.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadTemplate = () => {
     const csv = "division_name,team_name,manager_name,manager_email,manager_phone,season\nDivision AA,Thunder Hawks,John Smith,john@email.com,555-1234,2025-2026\nDivision AA,Ice Wolves,Jane Doe,jane@email.com,555-5678,2025-2026";
     const blob = new Blob([csv], { type: "text/csv" });
