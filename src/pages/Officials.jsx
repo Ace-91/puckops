@@ -185,12 +185,24 @@ export default function Officials() {
               </div>
               {o.user_email && <div className="text-xs text-gray-500 mb-1">{o.user_email}</div>}
               {o.phone && <div className="text-xs text-gray-500 mb-2">{o.phone}</div>}
-              <div className="flex items-center justify-between text-xs">
+              <div className="flex items-center justify-between text-xs mb-2">
                 <span className="text-gray-400">Max {o.max_games_per_week}/week</span>
                 <span className={`px-2 py-0.5 rounded-full ${o.is_active ? "bg-green-500/10 text-green-400" : "bg-gray-500/10 text-gray-400"}`}>
                   {o.is_active ? "Active" : "Inactive"}
                 </span>
               </div>
+              {/* Approval status */}
+              {(!o.approval_status || o.approval_status === "approved") ? (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 border border-green-500/20">✓ Approved</span>
+              ) : o.approval_status === "pending" ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">⏳ Pending</span>
+                  <button onClick={() => approveOfficial(o.id)} className="text-xs px-2 py-0.5 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/20">Approve</button>
+                  <button onClick={() => rejectOfficial(o.id)} className="text-xs px-2 py-0.5 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20">Reject</button>
+                </div>
+              ) : (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">✗ Rejected</span>
+              )}
               {o.preferred_divisions?.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {o.preferred_divisions.map(divId => {
