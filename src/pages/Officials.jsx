@@ -55,6 +55,18 @@ export default function Officials() {
     load();
   }, []);
 
+  const approveOfficial = async (id) => {
+    await base44.entities.Official.update(id, { approval_status: "approved" });
+    const o = await base44.entities.Official.list();
+    setOfficials(o);
+  };
+
+  const rejectOfficial = async (id) => {
+    await base44.entities.Official.update(id, { approval_status: "rejected" });
+    const o = await base44.entities.Official.list();
+    setOfficials(o);
+  };
+
   const save = async () => {
     if (editing) {
       await base44.entities.Official.update(editing.id, form);
