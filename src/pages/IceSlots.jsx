@@ -360,6 +360,44 @@ export default function IceSlots() {
         </div>
       </div>
 
+      {/* Ice Slot Calculator */}
+      <div className="rounded-xl border border-gray-800 p-4 mb-6" style={{ background: "#111" }}>
+        <h2 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <Clock className="w-4 h-4" style={{ color: "#d4af37" }} /> Ice Slot Calculator
+        </h2>
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Teams in division</label>
+            <input type="number" min={2} max={30}
+              className="w-24 bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+              value={calcTeams} onChange={e => setCalcTeams(Number(e.target.value) || 2)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Games per team</label>
+            <input type="number" min={1} max={60}
+              className="w-24 bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+              value={calcGamesPerTeam} onChange={e => setCalcGamesPerTeam(Number(e.target.value) || 1)} />
+          </div>
+          <div className="flex gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: "#d4af37" }}>{slotsNeeded}</div>
+              <div className="text-xs text-gray-400">Slots needed</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{slotsAvailableNow}</div>
+              <div className="text-xs text-gray-400">Available now</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-2xl font-bold ${slotsDiff >= 0 ? "text-green-400" : "text-red-400"}`}>
+                {slotsDiff >= 0 ? "+" : ""}{slotsDiff}
+              </div>
+              <div className="text-xs text-gray-400">{slotsDiff >= 0 ? "Surplus" : "Shortage"}</div>
+            </div>
+          </div>
+        </div>
+        <p className="text-xs text-gray-600 mt-2">Formula: (teams × games/team) ÷ 2 = total games = total ice slots needed</p>
+      </div>
+
       {/* Arenas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {arenas.map(a => (
