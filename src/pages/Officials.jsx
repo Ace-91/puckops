@@ -207,7 +207,7 @@ export default function Officials() {
               </div>
               <div>
                 <label className="text-sm text-gray-400 block mb-1">Max Games Per Week</label>
-                <input type="number" className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                <input type="number" className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" style={{ borderColor: "#333" }}
                   value={form.max_games_per_week} onChange={e => setForm(f => ({ ...f, max_games_per_week: Number(e.target.value) }))} />
               </div>
               <div>
@@ -215,7 +215,10 @@ export default function Officials() {
                 <div className="flex flex-wrap gap-2">
                   {divisions.map(d => (
                     <button key={d.id} type="button" onClick={() => toggleDiv(d.id)}
-                      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${form.preferred_divisions?.includes(d.id) ? "bg-sky-500 text-white" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                      className="px-3 py-1.5 rounded-lg text-sm transition-colors border"
+                      style={form.preferred_divisions?.includes(d.id)
+                        ? { background: GOLD, color: "#000", borderColor: GOLD }
+                        : { background: "#1a1a1a", color: "#999", borderColor: "#333" }}>
                       {d.name}
                     </button>
                   ))}
@@ -223,17 +226,17 @@ export default function Officials() {
               </div>
               <div>
                 <label className="text-sm text-gray-400 block mb-1">Notes</label>
-                <textarea className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500 h-16 resize-none"
+                <textarea className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none h-16 resize-none" style={{ borderColor: "#333" }}
                   value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
               </div>
               <div className="flex items-center gap-2">
-                <input type="checkbox" id="active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="accent-sky-500" />
+                <input type="checkbox" id="active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} style={{ accentColor: GOLD }} />
                 <label htmlFor="active" className="text-sm text-gray-300">Active</label>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Cancel</button>
-              <button onClick={save} className="flex-1 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg text-white text-sm font-medium">Save</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
+              <button onClick={save} className="flex-1 py-2 rounded-lg text-black text-sm font-medium" style={{ background: SILVER }}>Save</button>
             </div>
           </div>
         </div>
