@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, Clock, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw } from "lucide-react";
+import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
-import { batchDelete, batchUpdate } from "@/components/batchOps";
+import IceSlotCalculator from "@/components/IceSlotCalculator";
 
 function addOneHour(time) {
   if (!time) return "";
