@@ -284,15 +284,9 @@ export default function ScheduleBuilder() {
     const div = divisions.find(d => d.id === divId);
     if (!confirm(`Delete all regular season games for ${div?.name}?`)) return;
     const toDelete = existingGames.filter(g => g.division_id === divId && g.game_type === "regular");
-    for (let i = 0; i < toDelete.length; i += 10) {
-      await Promise.all(toDelete.slice(i, i + 10).map(g => base44.entities.Game.delete(g.id)));
-      if (i + 10 < toDelete.length) await new Promise(r => setTimeout(r, 200));
-    }
     const slotIds = [...new Set(toDelete.map(g => g.ice_slot_id).filter(Boolean))];
-    for (let i = 0; i < slotIds.length; i += 10) {
-      await Promise.all(slotIds.slice(i, i + 10).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
-      if (i + 10 < slotIds.length) await new Promise(r => setTimeout(r, 200));
-    }
+    await batchDelete(toDelete.map(g => g.id), id => base44.entities.Game.delete(id));
+    await batchUpdate(slotIds, id => base44.entities.IceSlot.update(id, { is_available: true }));
     const g = await base44.entities.Game.list("date", 2000);
     setExistingGames(g);
   };
