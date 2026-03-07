@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calendar, Moon, ChevronLeft, ChevronRight, Search, Download, Pencil, Check, X, Filter, Trash2, CheckSquare, Square, MapPin, Clock, Users, AlertTriangle } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
+import { batchDelete } from "@/components/batchOps";
 
 const STATUS_OPTIONS = ["scheduled", "completed", "forfeited", "postponed", "replacement_needed"];
 

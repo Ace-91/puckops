@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Users, X, Upload, Download, CheckSquare, Square, ArrowUpDown, List, LayoutGrid, MoveRight } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
+import { batchDelete, batchUpdate, bulkCreateInChunks } from "@/components/batchOps";
 
 function ImportProgress({ total, current, done }) {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;

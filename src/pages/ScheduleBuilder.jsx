@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Shuffle, AlertCircle, CheckCircle, Moon, Eye, Trash2, Loader2, AlertTriangle, ChevronDown, Plus, X, Calendar } from "lucide-react";
+import { batchDelete, batchUpdate, bulkCreateInChunks } from "@/components/batchOps";
 
 const isLateTime = (t) => {
   if (!t) return false;
