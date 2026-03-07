@@ -224,7 +224,7 @@ export default function Dashboard() {
               {[...Array(5)].map((_, i) => <div key={i} className="rounded-xl h-28 animate-pulse" style={{ background: "#111" }} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {cards.map(card => (
                 <Link key={card.label} to={createPageUrl(card.page)}
                   className="rounded-xl p-5 border transition-all hover:scale-105 hover:border-opacity-50"
