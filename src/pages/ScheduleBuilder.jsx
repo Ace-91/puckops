@@ -117,7 +117,8 @@ export default function ScheduleBuilder() {
           allWarns = allWarns.concat(warns);
         }
         setPreview(allGames);
-        setWarnings(allWarns);
+        // Deduplicate warnings
+        setWarnings([...new Set(allWarns)]);
         const lateGames = allGames.filter(g => g.is_late_game);
         setStats({ total: allGames.length, lateGames: lateGames.length, divCount: selectedDivIds.length });
         setResult({ success: true, count: allGames.length });
@@ -536,6 +537,19 @@ export default function ScheduleBuilder() {
                 <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{stats.divCount}</div>
                 <div className="text-xs text-gray-400">Divisions</div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {saveProgress && (
+          <div className="rounded-xl p-4 border border-gray-700" style={{ background: "#0d0d0d" }}>
+            <div className="flex justify-between text-xs text-gray-400 mb-2">
+              <span>{saveProgress.phase} — {saveProgress.current} of {saveProgress.total}</span>
+              <span>{saveProgress.total > 0 ? Math.round((saveProgress.current / saveProgress.total) * 100) : 0}%</span>
+            </div>
+            <div className="w-full rounded-full h-2.5" style={{ background: "#222" }}>
+              <div className="h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${saveProgress.total > 0 ? Math.round((saveProgress.current / saveProgress.total) * 100) : 0}%`, background: "linear-gradient(90deg,#c0c0c0,#d4af37)" }} />
             </div>
           </div>
         )}
