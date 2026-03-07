@@ -175,7 +175,7 @@ export default function Dashboard() {
           <h2 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
             <span style={{ color: GOLD }}>⚡</span> Season Setup Workflow
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
               { step: "1", label: "Teams & Divisions", desc: "Add divisions and import teams via CSV", page: "TeamsAndDivisions", color: SILVER },
               { step: "2", label: "Ice Slots", desc: "Import arena time slots via CSV or bulk add", page: "IceSlots", color: SILVER },
