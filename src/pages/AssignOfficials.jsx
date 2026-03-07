@@ -432,9 +432,9 @@ export default function AssignOfficials() {
               <div className="bg-[#1e2533] rounded-xl border border-gray-800 p-4">
                 <h3 className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1"><Info className="w-3 h-3" /> Legend</h3>
                 <div className="space-y-1 text-xs">
-                  <div><span className="text-green-400">● </span><span className="text-gray-400">0–2 games — available</span></div>
-                  <div><span className="text-yellow-400">● </span><span className="text-gray-400">3–4 games — busy</span></div>
-                  <div><span className="text-red-400">● </span><span className="text-gray-400">5+ games — at limit</span></div>
+                  <div><span className="text-green-400">● </span><span className="text-gray-400">0–24 games total</span></div>
+                  <div><span className="text-yellow-400">● </span><span className="text-gray-400">25–49 games total</span></div>
+                  <div><span className="text-red-400">● </span><span className="text-gray-400">50+ games total</span></div>
                   <div><span className="text-orange-400">⚠ </span><span className="text-gray-400">gap in schedule</span></div>
                 </div>
               </div>
