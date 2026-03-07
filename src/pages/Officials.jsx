@@ -2,6 +2,37 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Plus, X, Pencil, Trash2, Shield, Clock } from "lucide-react";
 
+const GOLD = "#d4af37";
+const SILVER = "#c0c0c0";
+
+// Referee stripe avatar
+function RefStripes({ name, size = 36 }) {
+  const initials = (name || "?")[0].toUpperCase();
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: "2px solid #444", position: "relative", background: "#111" }}>
+      {/* Black & white vertical stripes */}
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ position: "absolute", inset: 0 }}>
+        {[0, 1, 2, 3, 4, 5].map(i => (
+          <rect key={i} x={i * (size / 6)} y={0} width={size / 6} height={size} fill={i % 2 === 0 ? "#111" : "#e0e0e0"} />
+        ))}
+      </svg>
+      <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: size * 0.36, color: "#d4af37", textShadow: "0 1px 2px #000", zIndex: 1 }}>
+        {initials}
+      </span>
+    </div>
+  );
+}
+
+// Timekeeper avatar (solid dark with gold clock)
+function TKAvatar({ name, size = 36 }) {
+  const initials = (name || "?")[0].toUpperCase();
+  return (
+    <div style={{ width: size, height: size, borderRadius: "50%", overflow: "hidden", flexShrink: 0, border: "2px solid #444", background: "#1a1a1a", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: size * 0.36, color: GOLD }}>
+      {initials}
+    </div>
+  );
+}
+
 const emptyForm = { full_name: "", user_email: "", phone: "", role: "referee", certification_level: "level2", preferred_divisions: [], max_games_per_week: 5, notes: "", is_active: true };
 
 export default function Officials() {
