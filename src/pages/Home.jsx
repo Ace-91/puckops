@@ -29,13 +29,8 @@ export default function Home() {
   useEffect(() => {
     base44.auth.me().then(u => {
       setUser(u);
-      // If already logged in, redirect to dashboard
-      if (u) window.location.href = createPageUrl("Dashboard");
     }).catch(() => {});
   }, []);
-
-  // While checking auth, show nothing to avoid flash
-  if (user) return null;
 
   return (
     <div className="min-h-screen" style={{ background: "#000" }}>
