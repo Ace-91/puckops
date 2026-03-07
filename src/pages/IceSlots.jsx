@@ -318,6 +318,13 @@ export default function IceSlots() {
   const availableCount = slots.filter(s => s.is_available).length;
   const selectedUsed = [...selectedIds].filter(id => !slots.find(s => s.id === id)?.is_available).length;
 
+  // Slot calculator
+  const [calcTeams, setCalcTeams] = useState(8);
+  const [calcGamesPerTeam, setCalcGamesPerTeam] = useState(30);
+  const slotsNeeded = Math.ceil((calcTeams * calcGamesPerTeam) / 2);
+  const slotsAvailableNow = availableCount;
+  const slotsDiff = slotsAvailableNow - slotsNeeded;
+
   return (
     <div>
       {progress && (
