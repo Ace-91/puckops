@@ -123,14 +123,13 @@ export default function IceSlots() {
       setCsvProgress({ current: toCreate.length, total });
     }
 
-    // Update duplicates in batches of 5
+    // Update duplicates one at a time to avoid rate limits
     let updated = 0;
-    for (let i = 0; i < toUpdate.length; i += 5) {
-      const chunk = toUpdate.slice(i, i + 5);
-      await Promise.all(chunk.map(({ id, data }) => base44.entities.IceSlot.update(id, data)));
-      updated += chunk.length;
+    for (const { id, data } of toUpdate) {
+      await base44.entities.IceSlot.update(id, data);
+      updated++;
       setCsvProgress({ current: toCreate.length + updated, total });
-      if (i + 5 < toUpdate.length) await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 300));
     }
 
     setCsvResult({ created: toCreate.length, updated, skipped });
