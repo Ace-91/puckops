@@ -62,6 +62,7 @@ import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
+import Analytics from './pages/Analytics';
 import __Layout from './Layout.jsx';
 
 
@@ -81,6 +82,7 @@ export const PAGES = {
     "ScheduleBuilder": ScheduleBuilder,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
+    "Analytics": Analytics,
 }
 
 export const pagesConfig = {
