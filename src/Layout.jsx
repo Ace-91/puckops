@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import {
   Calendar, Users, Shield, Clock, AlertTriangle, Home,
-  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard
+  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard, TrendingUp, Lock
 } from "lucide-react";
 import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
@@ -21,8 +21,24 @@ const navItems = [
   { label: "Official Availability", page: "OfficialAvailability", icon: Calendar, roles: ["referee", "timekeeper"] },
   { label: "Assign Officials", page: "AssignOfficials", icon: Users, roles: ["admin", "referee_coordinator"] },
   { label: "Forfeits", page: "Forfeits", icon: AlertTriangle, roles: ["admin", "referee_coordinator", "team_manager"] },
+  { label: "Analytics", page: "Analytics", icon: TrendingUp, roles: ["admin"] },
   { label: "User Management", page: "UserManagement", icon: Users, roles: ["admin"] },
 ];
+
+// Pages that require a specific role — anyone else sees an access-denied screen
+const PAGE_ROLE_REQUIREMENTS = {
+  TeamsAndDivisions: ["admin"],
+  IceSlots: ["admin"],
+  ScheduleBuilder: ["admin"],
+  AssignOfficials: ["admin", "referee_coordinator"],
+  Officials: ["admin", "referee_coordinator"],
+  UserManagement: ["admin"],
+  Analytics: ["admin"],
+  OfficialPortal: ["referee", "timekeeper"],
+  OfficialAvailability: ["referee", "timekeeper"],
+  BlackoutDates: ["admin", "team_manager"],
+  Forfeits: ["admin", "referee_coordinator", "team_manager"],
+};
 
 export default function Layout({ children, currentPageName }) {
   const [user, setUser] = useState(null);
