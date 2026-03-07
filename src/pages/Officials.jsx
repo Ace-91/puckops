@@ -122,16 +122,41 @@ export default function Officials() {
         </button>
       </div>
 
-      <div className="flex gap-3 mb-4">
-        {["all", "referee", "timekeeper"].map(r => (
-          <button key={r} onClick={() => setFilterRole(r)}
-            className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize border"
-            style={filterRole === r
-              ? { background: GOLD, color: "#000", borderColor: GOLD }
-              : { background: "#111", color: "#999", borderColor: "#333" }}>
-            {r === "all" ? "All" : r === "referee" ? `Referees (${refs.length})` : `Timekeepers (${tks.length})`}
+      {pendingCount > 0 && (
+        <div className="mb-4 rounded-xl border p-4 flex items-center justify-between" style={{ background: "#1a1000", borderColor: "#d4af3740" }}>
+          <div className="flex items-center gap-2">
+            <span className="text-yellow-400 text-lg">⏳</span>
+            <span className="text-yellow-300 font-medium text-sm">{pendingCount} official{pendingCount > 1 ? "s" : ""} awaiting approval</span>
+          </div>
+          <button onClick={() => setFilterApproval("pending")} className="text-xs px-3 py-1 rounded-lg border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+            Review
           </button>
-        ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex gap-2">
+          {["all", "referee", "timekeeper"].map(r => (
+            <button key={r} onClick={() => setFilterRole(r)}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors capitalize border"
+              style={filterRole === r
+                ? { background: GOLD, color: "#000", borderColor: GOLD }
+                : { background: "#111", color: "#999", borderColor: "#333" }}>
+              {r === "all" ? "All" : r === "referee" ? `Referees (${refs.length})` : `Timekeepers (${tks.length})`}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          {[["all","All Status"],["pending","Pending"],["approved","Approved"],["rejected","Rejected"]].map(([val, label]) => (
+            <button key={val} onClick={() => setFilterApproval(val)}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors border"
+              style={filterApproval === val
+                ? { background: SILVER, color: "#000", borderColor: SILVER }
+                : { background: "#111", color: "#999", borderColor: "#333" }}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
