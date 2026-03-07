@@ -117,24 +117,25 @@ export default function IceSlots() {
     const total = toCreate.length + toUpdate.length;
     setCsvProgress({ current: 0, total });
 
-    // Bulk-create in chunks of 20 with 1.5s gap to avoid rate limits
-    const BULK_SIZE = 20;
+    // Bulk-create in chunks of 10 with 2s gap to avoid rate limits
+    const BULK_SIZE = 10;
     let created = 0;
     for (let i = 0; i < toCreate.length; i += BULK_SIZE) {
       const chunk = toCreate.slice(i, i + BULK_SIZE);
       await base44.entities.IceSlot.bulkCreate(chunk);
       created += chunk.length;
       setCsvProgress({ current: created, total });
-      if (i + BULK_SIZE < toCreate.length) await new Promise(r => setTimeout(r, 1500));
+      await new Promise(r => setTimeout(r, 2000));
     }
 
-    // Update duplicates one at a time with delay
+    // Update duplicates in groups of 3 with 2s delay between groups
     let updated = 0;
-    for (const { id, data } of toUpdate) {
-      await base44.entities.IceSlot.update(id, data);
-      updated++;
+    for (let i = 0; i < toUpdate.length; i += 3) {
+      const chunk = toUpdate.slice(i, i + 3);
+      await Promise.all(chunk.map(({ id, data }) => base44.entities.IceSlot.update(id, data)));
+      updated += chunk.length;
       setCsvProgress({ current: created + updated, total });
-      await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 2000));
     }
 
     setCsvResult({ created, updated, skipped });
