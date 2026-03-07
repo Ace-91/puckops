@@ -287,6 +287,15 @@ export default function Officials() {
                 <input type="checkbox" id="active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} style={{ accentColor: GOLD }} />
                 <label htmlFor="active" className="text-sm text-gray-300">Active</label>
               </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Approval Status</label>
+                <select className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" style={{ borderColor: "#333" }}
+                  value={form.approval_status} onChange={e => setForm(f => ({ ...f, approval_status: e.target.value }))}>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
