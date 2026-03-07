@@ -182,14 +182,17 @@ export default function AssignOfficials() {
       Object.assign(mergedUpdates[u.id], u);
     }
 
-    // Save all updates
-    for (const upd of Object.values(mergedUpdates)) {
-      const { id, ...data } = upd;
-      await base44.entities.Game.update(id, data);
+    // Save all updates in batches of 5 with a delay to avoid rate limits
+    const allUpdates = Object.values(mergedUpdates);
+    const BATCH = 5;
+    for (let i = 0; i < allUpdates.length; i += BATCH) {
+      const chunk = allUpdates.slice(i, i + BATCH);
+      await Promise.all(chunk.map(({ id, ...data }) => base44.entities.Game.update(id, data)));
+      if (i + BATCH < allUpdates.length) await new Promise(r => setTimeout(r, 1500));
     }
 
     await load();
-    setAutoResult({ msg: `Auto-assigned ${Object.keys(mergedUpdates).length} games successfully.`, type: "success" });
+    setAutoResult({ msg: `Auto-assigned ${allUpdates.length} games successfully.`, type: "success" });
     setAutoAssigning(false);
   };
 
