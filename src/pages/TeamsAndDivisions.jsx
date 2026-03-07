@@ -69,51 +69,59 @@ export default function TeamsAndDivisions() {
     const lines = text.trim().split("\n").filter(l => l.trim());
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
     const dataLines = lines.slice(1);
-    let created = 0, updated = 0, skipped = 0, errors = [];
+    let skipped = 0;
     const currentDivs = [...divisions];
-
-    setImportProgress({ current: 0, total: dataLines.length, done: false });
-
     const currentTeams = [...teams];
-    for (let i = 0; i < dataLines.length; i++) {
-      const cols = dataLines[i].split(",").map(c => c.trim());
+
+    // Parse rows and ensure divisions exist first
+    const toCreate = [], toUpdate = [];
+    for (const line of dataLines) {
+      const cols = line.split(",").map(c => c.trim());
       const row = {};
       headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
-      if (!row.team_name) { skipped++; setImportProgress({ current: i + 1, total: dataLines.length, done: false }); continue; }
-      try {
-        // Find or create division
-        let div = currentDivs.find(d => d.name.toLowerCase() === row.division_name?.toLowerCase());
-        if (!div && row.division_name) {
-          div = await base44.entities.Division.create({ name: row.division_name, season: row.season || "2025-2026", games_per_team: 30 });
-          currentDivs.push(div);
-        }
-        const teamData = {
-          name: row.team_name,
-          division_id: div?.id || "",
-          division_name: div?.name || row.division_name || "",
-          manager_name: row.manager_name || "",
-          manager_email: row.manager_email || "",
-          manager_phone: row.manager_phone || "",
-          season: row.season || "2025-2026",
-        };
-        // Check for duplicate by name + division
-        const existingTeam = currentTeams.find(t =>
-          t.name.toLowerCase() === row.team_name.toLowerCase() &&
-          (t.division_id === div?.id || t.division_name?.toLowerCase() === row.division_name?.toLowerCase())
-        );
-        if (existingTeam) {
-          await base44.entities.Team.update(existingTeam.id, teamData);
-          updated++;
-        } else {
-          const newTeam = await base44.entities.Team.create(teamData);
-          currentTeams.push(newTeam);
-          created++;
-        }
-        await new Promise(r => setTimeout(r, 200));
-      } catch (e) { errors.push(`Row ${i + 1}: ${e.message}`); }
-      setImportProgress({ current: i + 1, total: dataLines.length, done: i + 1 === dataLines.length });
+      if (!row.team_name) { skipped++; continue; }
+      let div = currentDivs.find(d => d.name.toLowerCase() === row.division_name?.toLowerCase());
+      if (!div && row.division_name) {
+        div = await base44.entities.Division.create({ name: row.division_name, season: row.season || "2025-2026", games_per_team: 30 });
+        currentDivs.push(div);
+      }
+      const teamData = {
+        name: row.team_name,
+        division_id: div?.id || "",
+        division_name: div?.name || row.division_name || "",
+        manager_name: row.manager_name || "",
+        manager_email: row.manager_email || "",
+        manager_phone: row.manager_phone || "",
+        season: row.season || "2025-2026",
+      };
+      const existing = currentTeams.find(t =>
+        t.name.toLowerCase() === row.team_name.toLowerCase() &&
+        (t.division_id === div?.id || t.division_name?.toLowerCase() === row.division_name?.toLowerCase())
+      );
+      if (existing) toUpdate.push({ id: existing.id, data: teamData });
+      else toCreate.push(teamData);
     }
-    setImportResult({ created, updated, skipped, errors });
+
+    const total = toCreate.length + toUpdate.length;
+    setImportProgress({ current: 0, total, done: false });
+
+    // Bulk-create new teams in chunks of 20
+    await bulkCreateInChunks(
+      toCreate,
+      chunk => base44.entities.Team.bulkCreate(chunk),
+      (current) => setImportProgress({ current, total, done: false }),
+      20, 800
+    );
+
+    // Batch-update existing teams
+    await batchUpdate(
+      toUpdate,
+      ({ id, data }) => base44.entities.Team.update(id, data),
+      (current) => setImportProgress({ current: toCreate.length + current, total, done: false }),
+    );
+
+    setImportProgress({ current: total, total, done: true });
+    setImportResult({ created: toCreate.length, updated: toUpdate.length, skipped, errors: [] });
     setImporting(false);
     loadAll();
   };
