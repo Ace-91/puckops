@@ -86,13 +86,12 @@ export default function Schedule() {
   const runDelete = async (ids, title) => {
     cancelRef.current = false;
     setProgress({ title, current: 0, total: ids.length });
-    for (let i = 0; i < ids.length; i += 5) {
-      if (cancelRef.current) break;
-      const chunk = ids.slice(i, i + 5);
-      await Promise.all(chunk.map(id => base44.entities.Game.delete(id)));
-      setProgress({ title, current: Math.min(i + 5, ids.length), total: ids.length });
-      if (i + 5 < ids.length) await new Promise(r => setTimeout(r, 150));
-    }
+    await batchDelete(
+      ids,
+      id => base44.entities.Game.delete(id),
+      (current, total) => setProgress({ title, current, total }),
+      cancelRef
+    );
     setProgress(null);
   };
 
@@ -124,20 +123,20 @@ export default function Schedule() {
     const total = allIds.length + slotIds.length;
     setProgress({ title: "Clearing Schedule", current: 0, total });
 
-    // Delete games in batches of 5
-    for (let i = 0; i < allIds.length; i += 5) {
-      if (cancelRef.current) break;
-      await Promise.all(allIds.slice(i, i + 5).map(id => base44.entities.Game.delete(id)));
-      setProgress({ title: "Clearing Schedule", current: Math.min(i + 5, allIds.length), total });
-      if (i + 5 < allIds.length) await new Promise(r => setTimeout(r, 150));
-    }
-    // Restore ice slots in batches of 5
-    for (let i = 0; i < slotIds.length; i += 5) {
-      if (cancelRef.current) break;
-      await Promise.all(slotIds.slice(i, i + 5).map(id => base44.entities.IceSlot.update(id, { is_available: true })));
-      setProgress({ title: "Restoring Ice Slots", current: allIds.length + Math.min(i + 5, slotIds.length), total });
-      if (i + 5 < slotIds.length) await new Promise(r => setTimeout(r, 150));
-    }
+    // Delete games
+    await batchDelete(
+      allIds,
+      id => base44.entities.Game.delete(id),
+      (current) => setProgress({ title: "Clearing Schedule", current, total }),
+      cancelRef
+    );
+    // Restore ice slots
+    await batchUpdate(
+      slotIds,
+      id => base44.entities.IceSlot.update(id, { is_available: true }),
+      (current) => setProgress({ title: "Restoring Ice Slots", current: allIds.length + current, total }),
+      cancelRef
+    );
     setProgress(null);
     setGames([]);
     setSelectedIds(new Set());
