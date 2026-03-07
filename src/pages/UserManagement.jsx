@@ -319,6 +319,15 @@ export default function UserManagement() {
                       </span>
                     )}
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1 max-w-[160px]">
+                      {(o.preferred_divisions || []).map(divId => {
+                        const d = divisions.find(x => x.id === divId);
+                        return d ? <span key={divId} className="text-xs px-1.5 py-0.5 rounded border" style={{ borderColor: "rgba(212,175,55,0.3)", color: "#d4af37", background: "rgba(212,175,55,0.08)" }}>{d.name}</span> : null;
+                      })}
+                      {(!o.preferred_divisions || o.preferred_divisions.length === 0) && <span className="text-xs text-gray-600">All</span>}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {o.phone && <div className="flex items-center gap-1"><Phone className="w-3 h-3" />{o.phone}</div>}
                     {o.user_email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{o.user_email}</div>}
@@ -329,6 +338,11 @@ export default function UserManagement() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-400 text-center">{o.max_games_per_week || 5}</td>
+                  <td className="px-4 py-3 text-right">
+                    <Link to={createPageUrl("Officials")} className="p-1.5 text-gray-600 hover:text-yellow-400 rounded-lg hover:bg-yellow-500/10 inline-flex" title="Edit in Officials page">
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  </td>
                 </tr>
               ))}
             </tbody>
