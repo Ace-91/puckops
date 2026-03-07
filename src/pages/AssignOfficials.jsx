@@ -399,7 +399,7 @@ export default function AssignOfficials() {
                         </div>
                         <div className="text-right shrink-0">
                           {!avail ? <span className="text-xs text-red-400">Unavail</span>
-                            : <span className={`text-xs ${count >= 5 ? "text-red-400" : count >= 3 ? "text-yellow-400" : "text-green-400"}`}>{count} games</span>}
+                            : <span className={`text-xs ${count >= 50 ? "text-red-400" : count >= 25 ? "text-yellow-400" : "text-green-400"}`}>{count} games</span>}
                           {gap && <div className="text-xs text-orange-400">⚠ gap</div>}
                         </div>
                       </div>
@@ -422,7 +422,7 @@ export default function AssignOfficials() {
                         <div className="flex-1 min-w-0">
                           <div className="text-xs font-medium text-white truncate">{o.full_name}</div>
                         </div>
-                        <span className={`text-xs ${count >= 5 ? "text-red-400" : count >= 3 ? "text-yellow-400" : "text-green-400"}`}>{count} games</span>
+                        <span className={`text-xs ${count >= 50 ? "text-red-400" : count >= 25 ? "text-yellow-400" : "text-green-400"}`}>{count} games</span>
                       </div>
                     );
                   })}
