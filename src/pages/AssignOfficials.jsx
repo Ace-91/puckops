@@ -387,7 +387,7 @@ export default function AssignOfficials() {
                   {refs.map(o => {
                     const date = filterDate || sortedDates[0];
                     const avail = date ? isAvailable(o.id, date) : true;
-                    const count = date ? officialGameCount(o.id, date) : 0;
+                    const count = games.filter(g => g.referee1_id === o.id || g.referee2_id === o.id).length;
                     const gap = date ? hasScheduleGap(o.id, date) : false;
                     return (
                       <div key={o.id} draggable onDragStart={e => handleDragStart(e, o.id, "referee")} onDragEnd={() => setDragging(null)}
@@ -414,7 +414,7 @@ export default function AssignOfficials() {
                   {tks.map(o => {
                     const date = filterDate || sortedDates[0];
                     const avail = date ? isAvailable(o.id, date) : true;
-                    const count = date ? officialGameCount(o.id, date) : 0;
+                    const count = games.filter(g => g.timekeeper_id === o.id).length;
                     return (
                       <div key={o.id} draggable onDragStart={e => handleDragStart(e, o.id, "timekeeper")} onDragEnd={() => setDragging(null)}
                         className={`flex items-center gap-2 p-2 rounded-lg border cursor-grab active:cursor-grabbing transition-colors ${avail ? "border-gray-700 bg-gray-900/40 hover:border-purple-500/50" : "border-red-500/20 bg-red-500/5 opacity-50"}`}>
