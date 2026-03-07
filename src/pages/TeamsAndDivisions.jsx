@@ -325,6 +325,14 @@ export default function TeamsAndDivisions() {
               <List className="w-4 h-4" />
             </button>
           </div>
+          <button onClick={exportDivisionsCSV} disabled={divisions.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-black disabled:opacity-40" style={{ background: "#c0c0c0" }}>
+            <FileDown className="w-4 h-4" /> Export Divisions
+          </button>
+          <button onClick={exportTeamsCSV} disabled={teams.length === 0}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-black disabled:opacity-40" style={{ background: "#c0c0c0" }}>
+            <FileDown className="w-4 h-4" /> Export Teams
+          </button>
           <button onClick={() => { setShowImport(true); setImportResult(null); setImportFile(null); setImportProgress({ current: 0, total: 0, done: false }); }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-black" style={{ background: "#c0c0c0" }}>
             <Upload className="w-4 h-4" /> Import CSV

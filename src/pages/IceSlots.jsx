@@ -334,6 +334,10 @@ export default function IceSlots() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button onClick={exportSlotsCSV} disabled={slots.length === 0}
+            className="flex items-center gap-2 text-black px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40" style={{ background: "#c0c0c0" }}>
+            <FileDown className="w-4 h-4" /> Export CSV
+          </button>
           <button onClick={() => { setShowCsvImport(true); setCsvResult(null); setCsvFile(null); setCsvProgress({ current: 0, total: 0 }); }}
             className="flex items-center gap-2 text-black px-3 py-2 rounded-lg text-sm font-medium" style={{ background: "#c0c0c0" }}>
             <Upload className="w-4 h-4" /> Import CSV
