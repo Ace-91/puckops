@@ -112,6 +112,7 @@ export default function Dashboard() {
     { label: "Officials", value: stats.officials, icon: Shield, page: "Officials", color: SILVER },
     { label: "Forfeits", value: stats.forfeits, icon: AlertTriangle, page: "Forfeits", color: "#ef4444" },
     { label: "Pending Blackouts", value: stats.pendingBlackouts, icon: Clock, page: "BlackoutDates", color: GOLD },
+    { label: "Pending Officials", value: stats.pendingOfficials, icon: Shield, page: "Officials", color: "#a855f7" },
   ];
 
   return (
