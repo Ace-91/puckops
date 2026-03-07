@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw } from "lucide-react";
+import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw, Clock } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
 import IceSlotCalculator from "@/components/IceSlotCalculator";
 
@@ -480,7 +480,7 @@ export default function IceSlots() {
       {/* CSV Import Modal */}
       {showCsvImport && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="rounded-xl border border-gray-800 p-6 w-full max-w-lg" style={{ background: "#111" }}>
+          <div className="rounded-xl border border-gray-800 p-6 w-full max-w-lg relative" style={{ background: "#111" }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Import Ice Slots from CSV</h2>
               <button onClick={() => setShowCsvImport(false)}><X className="w-5 h-5 text-gray-500" /></button>

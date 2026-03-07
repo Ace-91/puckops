@@ -249,19 +249,31 @@ export default function ScheduleBuilder() {
     return { games: scheduledGames, warns };
   };
 
+  const [saveProgress, setSaveProgress] = useState(null);
+
   const saveSchedule = async () => {
     if (!preview.length) return;
     setGenerating(true);
     const CHUNK = 10;
+    const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
+    const totalSteps = preview.length + slotIds.length;
+    let done = 0;
+    setSaveProgress({ current: 0, total: totalSteps, phase: "Saving games" });
+
     for (let i = 0; i < preview.length; i += CHUNK) {
       await base44.entities.Game.bulkCreate(preview.slice(i, i + CHUNK));
+      done += Math.min(CHUNK, preview.length - i);
+      setSaveProgress({ current: done, total: totalSteps, phase: "Saving games" });
       await new Promise(r => setTimeout(r, 2000));
     }
-    const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
+    setSaveProgress({ current: done, total: totalSteps, phase: "Updating ice slots" });
     for (let i = 0; i < slotIds.length; i += 5) {
       await Promise.all(slotIds.slice(i, i + 5).map(id => base44.entities.IceSlot.update(id, { is_available: false })));
+      done += Math.min(5, slotIds.length - i);
+      setSaveProgress({ current: done, total: totalSteps, phase: "Updating ice slots" });
       await new Promise(r => setTimeout(r, 2000));
     }
+    setSaveProgress(null);
     setResult({ saved: true, count: preview.length });
     setPreview([]); setStats(null); setWarnings([]);
     setGenerating(false);
