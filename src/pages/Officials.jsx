@@ -100,7 +100,11 @@ export default function Officials() {
     }));
   };
 
-  const filtered = officials.filter(o => filterRole === "all" || o.role === filterRole);
+  const pendingCount = officials.filter(o => o.approval_status === "pending").length;
+  const filtered = officials.filter(o =>
+    (filterRole === "all" || o.role === filterRole) &&
+    (filterApproval === "all" || o.approval_status === filterApproval || (!o.approval_status && filterApproval === "approved"))
+  );
   const refs = officials.filter(o => o.role === "referee");
   const tks = officials.filter(o => o.role === "timekeeper");
 
