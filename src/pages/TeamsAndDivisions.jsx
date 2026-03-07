@@ -172,10 +172,11 @@ export default function TeamsAndDivisions() {
     if (!confirm(`Permanently delete ${selectedTeamIds.size} team(s)?`)) return;
     const ids = [...selectedTeamIds];
     setProgress({ title: "Deleting Teams", current: 0, total: ids.length });
-    for (let i = 0; i < ids.length; i++) {
-      await base44.entities.Team.delete(ids[i]);
-      setProgress(p => ({ ...p, current: i + 1 }));
-    }
+    await batchDelete(
+      ids,
+      id => base44.entities.Team.delete(id),
+      (current, total) => setProgress({ title: "Deleting Teams", current, total })
+    );
     setProgress(null);
     await loadAll();
   };
@@ -185,10 +186,11 @@ export default function TeamsAndDivisions() {
     if (!div) return;
     const ids = [...selectedTeamIds];
     setProgress({ title: "Moving Teams", current: 0, total: ids.length });
-    for (let i = 0; i < ids.length; i++) {
-      await base44.entities.Team.update(ids[i], { division_id: div.id, division_name: div.name });
-      setProgress(p => ({ ...p, current: i + 1 }));
-    }
+    await batchUpdate(
+      ids,
+      id => base44.entities.Team.update(id, { division_id: div.id, division_name: div.name }),
+      (current, total) => setProgress({ title: "Moving Teams", current, total })
+    );
     setProgress(null);
     await loadAll();
   };
