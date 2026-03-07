@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, Shield, Search, Pencil, Check, X, Plus, Phone, Mail, Star, KeyRound } from "lucide-react";
+import { Users, Shield, Search, Pencil, Check, X, Plus, Phone, Mail, Star, KeyRound, ExternalLink } from "lucide-react";
+import { createPageUrl } from "@/utils";
+import { Link } from "react-router-dom";
 
 const ROLES = ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"];
 
