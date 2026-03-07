@@ -131,20 +131,51 @@ export default function Forfeits() {
     setSending(false);
   };
 
+  const notifyAdmin = async (subject, body) => {
+    const admins = await base44.entities.User.list().catch(() => []);
+    const adminEmails = admins.filter(u => u.role === "admin").map(u => u.email).filter(Boolean);
+    await Promise.all(adminEmails.map(email =>
+      base44.integrations.Core.SendEmail({ to: email, subject, body }).catch(() => {})
+    ));
+  };
+
   const respondToForfeit = async (responseId, response) => {
     await base44.entities.ForfeitResponse.update(responseId, { response, responded_at: new Date().toISOString() });
+
+    const resp = forfeitResponses.find(r => r.id === responseId);
+    if (!resp) { await reload(); return; }
+
+    const forfeit = forfeits.find(f => f.id === resp.forfeit_id);
+
     if (response === "accepted") {
-      const resp = forfeitResponses.find(r => r.id === responseId);
-      if (resp) {
-        await base44.entities.Forfeit.update(resp.forfeit_id, {
-          status: "replacement_found",
-          replacement_team_id: resp.team_id,
-          replacement_team_name: resp.team_name
-        });
-        const others = forfeitResponses.filter(r => r.forfeit_id === resp.forfeit_id && r.id !== responseId && r.response === "pending");
-        for (const o of others) await base44.entities.ForfeitResponse.update(o.id, { response: "declined" });
+      await base44.entities.Forfeit.update(resp.forfeit_id, {
+        status: "replacement_found",
+        replacement_team_id: resp.team_id,
+        replacement_team_name: resp.team_name
+      });
+      // Mark all other pending responses as declined
+      const others = forfeitResponses.filter(r => r.forfeit_id === resp.forfeit_id && r.id !== responseId && r.response === "pending");
+      for (const o of others) await base44.entities.ForfeitResponse.update(o.id, { response: "declined" });
+
+      // Notify admin
+      await notifyAdmin(
+        `Replacement Found – ${forfeit?.division_name} – ${forfeit?.game_date} ${forfeit?.game_time}`,
+        `A replacement team has been found for a forfeited slot.\n\nGame: ${forfeit?.game_date} ${forfeit?.game_time} at ${forfeit?.arena_name}\nDivision: ${forfeit?.division_name}\nOriginal Forfeit: ${forfeit?.forfeiting_team_name}\nReplacement Team: ${resp.team_name}\n\nLog in to HockeyOps to confirm the updated schedule.\n\nHockeyOps`
+      );
+    } else {
+      // Check if ALL responses are now non-pending after this decline
+      const allResponses = forfeitResponses.filter(r => r.forfeit_id === resp.forfeit_id);
+      const remainingPending = allResponses.filter(r => r.id !== responseId && r.response === "pending");
+      if (remainingPending.length === 0) {
+        await base44.entities.Forfeit.update(resp.forfeit_id, { status: "no_replacement" });
+        // Notify admin that no team stepped up
+        await notifyAdmin(
+          `No Replacement Found – ${forfeit?.division_name} – ${forfeit?.game_date} ${forfeit?.game_time}`,
+          `All teams have declined the replacement slot. No replacement was found.\n\nGame: ${forfeit?.game_date} ${forfeit?.game_time} at ${forfeit?.arena_name}\nDivision: ${forfeit?.division_name}\nForfeiting Team: ${forfeit?.forfeiting_team_name}\n\nA makeup game may need to be scheduled manually.\n\nLog in to HockeyOps to review.\n\nHockeyOps`
+        );
       }
     }
+
     await reload();
   };
 
