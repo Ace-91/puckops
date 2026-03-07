@@ -68,9 +68,16 @@ export default function IceSlots() {
     URL.revokeObjectURL(url);
   };
 
-  // CSV Import — bulkCreate new slots in one shot, batch-update duplicates
+  const [csvConfirmPending, setCsvConfirmPending] = useState(false);
+
+  // CSV Import — delete all existing slots first, then fast bulk-create
   const handleCsvImport = async () => {
     if (!csvFile) return;
+    setCsvConfirmPending(true);
+  };
+
+  const confirmAndImport = async () => {
+    setCsvConfirmPending(false);
     setCsvImporting(true);
     setCsvResult(null);
 
@@ -81,16 +88,14 @@ export default function IceSlots() {
 
     let skipped = 0;
     const toCreate = [];
-    const toUpdate = [];
 
     for (const line of dataLines) {
       const cols = line.split(",").map(c => c.trim());
       const row = {};
       headers.forEach((h, idx) => { row[h] = cols[idx] || ""; });
       if (!row.date || !row.start_time) { skipped++; continue; }
-
       const arena = arenas.find(a => a.name.toLowerCase() === row.arena_name?.toLowerCase());
-      const slotData = {
+      toCreate.push({
         arena_id: arena?.id || "",
         arena_name: arena?.name || row.arena_name || "",
         date: row.date,
@@ -99,48 +104,30 @@ export default function IceSlots() {
         season: row.season || "2025-2026",
         is_late_game: isLate(row.start_time),
         is_available: true,
-      };
-
-      const existing = slots.find(s =>
-        s.arena_name?.toLowerCase() === slotData.arena_name.toLowerCase() &&
-        s.date === slotData.date &&
-        s.start_time === slotData.start_time
-      );
-
-      if (existing) {
-        toUpdate.push({ id: existing.id, data: slotData });
-      } else {
-        toCreate.push(slotData);
-      }
+      });
     }
 
-    const total = toCreate.length + toUpdate.length;
-    setCsvProgress({ current: 0, total });
+    // Step 1: delete all existing slots
+    const existingSlots = await base44.entities.IceSlot.list("date", 9999);
+    setCsvProgress({ current: 0, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
+    for (let i = 0; i < existingSlots.length; i += 20) {
+      await Promise.all(existingSlots.slice(i, i + 20).map(s => base44.entities.IceSlot.delete(s.id)));
+      setCsvProgress({ current: i + 20, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
+      await new Promise(r => setTimeout(r, 500));
+    }
 
-    // Bulk-create in chunks of 10 with 2s gap to avoid rate limits
-    const BULK_SIZE = 10;
+    // Step 2: bulk-create new slots
+    const BULK_SIZE = 50;
     let created = 0;
     for (let i = 0; i < toCreate.length; i += BULK_SIZE) {
-      const chunk = toCreate.slice(i, i + BULK_SIZE);
-      await base44.entities.IceSlot.bulkCreate(chunk);
-      created += chunk.length;
-      setCsvProgress({ current: created, total });
-      await new Promise(r => setTimeout(r, 2000));
+      await base44.entities.IceSlot.bulkCreate(toCreate.slice(i, i + BULK_SIZE));
+      created += Math.min(BULK_SIZE, toCreate.length - i);
+      setCsvProgress({ current: existingSlots.length + created, total: existingSlots.length + toCreate.length, phase: "Importing slots" });
+      await new Promise(r => setTimeout(r, 800));
     }
 
-    // Update duplicates in groups of 3 with 2s delay between groups
-    let updated = 0;
-    for (let i = 0; i < toUpdate.length; i += 3) {
-      const chunk = toUpdate.slice(i, i + 3);
-      await Promise.all(chunk.map(({ id, data }) => base44.entities.IceSlot.update(id, data)));
-      updated += chunk.length;
-      setCsvProgress({ current: created + updated, total });
-      await new Promise(r => setTimeout(r, 2000));
-    }
-
-    setCsvResult({ created, updated, skipped });
+    setCsvResult({ created, skipped });
     setCsvImporting(false);
-    await new Promise(r => setTimeout(r, 1500));
     loadAll();
   };
 
@@ -317,13 +304,6 @@ export default function IceSlots() {
   const usedCount = slots.filter(s => !s.is_available).length;
   const availableCount = slots.filter(s => s.is_available).length;
   const selectedUsed = [...selectedIds].filter(id => !slots.find(s => s.id === id)?.is_available).length;
-
-  // Slot calculator
-  const [calcTeams, setCalcTeams] = useState(8);
-  const [calcGamesPerTeam, setCalcGamesPerTeam] = useState(30);
-  const slotsNeeded = Math.ceil((calcTeams * calcGamesPerTeam) / 2);
-  const slotsAvailableNow = availableCount;
-  const slotsDiff = slotsAvailableNow - slotsNeeded;
 
   return (
     <div>
@@ -520,7 +500,7 @@ export default function IceSlots() {
             {csvImporting && (
               <div className="mt-3">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>Importing {csvProgress.current} of {csvProgress.total}...</span>
+                  <span>{csvProgress.phase || "Importing"} — {csvProgress.current} of {csvProgress.total}</span>
                   <span>{csvProgress.total > 0 ? Math.round((csvProgress.current / csvProgress.total) * 100) : 0}%</span>
                 </div>
                 <div className="w-full bg-gray-800 rounded-full h-2">
@@ -530,16 +510,30 @@ export default function IceSlots() {
             )}
             {csvResult && !csvImporting && (
               <div className="mt-3 rounded-lg p-3 text-sm border border-green-500/20 text-green-400" style={{ background: "#001a00" }}>
-                ✓ {csvResult.created} created · {csvResult.updated} updated{csvResult.skipped > 0 ? ` · ${csvResult.skipped} skipped` : ""}.
+                ✓ {csvResult.created} created{csvResult.skipped > 0 ? ` · ${csvResult.skipped} skipped (missing date/time)` : ""}.
               </div>
             )}
             <div className="flex gap-3 mt-5">
               <button onClick={() => setShowCsvImport(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Close</button>
               <button onClick={handleCsvImport} disabled={!csvFile || csvImporting}
                 className="flex-1 py-2 rounded-lg text-sm font-medium text-black disabled:opacity-50" style={{ background: "#c0c0c0" }}>
-                {csvImporting ? "Importing..." : "Import"}
+                {csvImporting ? "Importing..." : "Import (Overwrite All)"}
               </button>
             </div>
+
+            {/* Confirm overwrite modal */}
+            {csvConfirmPending && (
+              <div className="absolute inset-0 rounded-xl flex items-center justify-center" style={{ background: "rgba(0,0,0,0.85)" }}>
+                <div className="rounded-xl border border-gray-700 p-6 m-4" style={{ background: "#1a1a1a" }}>
+                  <h3 className="text-white font-semibold mb-2">⚠️ Overwrite All Ice Slots?</h3>
+                  <p className="text-sm text-gray-400 mb-4">This will <strong className="text-red-400">delete all existing ice slots</strong> and replace them with the CSV contents. This cannot be undone.</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setCsvConfirmPending(false)} className="flex-1 py-2 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
+                    <button onClick={confirmAndImport} className="flex-1 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700">Yes, Overwrite</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
