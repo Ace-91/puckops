@@ -180,8 +180,9 @@ export default function Dashboard() {
               { step: "1", label: "Teams & Divisions", desc: "Add divisions and import teams via CSV", page: "TeamsAndDivisions", color: SILVER },
               { step: "2", label: "Ice Slots", desc: "Import arena time slots via CSV or bulk add", page: "IceSlots", color: SILVER },
               { step: "3", label: "Build Schedule", desc: "Auto-generate the season schedule", page: "ScheduleBuilder", color: GOLD },
-              { step: "4", label: "Assign Officials", desc: "Assign refs & timekeepers to games", page: "AssignOfficials", color: SILVER },
-              { step: "5", label: "Manage Season", desc: "Track forfeits, blackouts & changes", page: "Schedule", color: SILVER },
+              { step: "4", label: "Verify Schedule", desc: "Check game counts & gap warnings", page: "ScheduleVerification", color: SILVER },
+              { step: "5", label: "Assign Officials", desc: "Assign refs & timekeepers to games", page: "AssignOfficials", color: SILVER },
+              { step: "6", label: "Manage Season", desc: "Track forfeits, blackouts & changes", page: "Schedule", color: SILVER },
             ].map(({ step, label, desc, page, color }) => (
               <Link key={step} to={createPageUrl(page)}
                 className="rounded-xl border p-4 transition-all hover:scale-105 flex flex-col gap-1"

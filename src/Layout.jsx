@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import {
   Calendar, Users, Shield, Clock, AlertTriangle, Home,
-  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard, TrendingUp, Lock
+  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard, TrendingUp, Lock, CheckCircle
 } from "lucide-react";
 import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
@@ -16,6 +16,7 @@ const navItems = [
   { label: "Teams & Divisions", page: "TeamsAndDivisions", icon: Layers, roles: ["admin"] },
   { label: "Ice Slots & Arenas", page: "IceSlots", icon: Clock, roles: ["admin"] },
   { label: "Schedule Builder", page: "ScheduleBuilder", icon: Settings, roles: ["admin"] },
+  { label: "Schedule Verify", page: "ScheduleVerification", icon: CheckCircle, roles: ["admin"] },
   { label: "Blackout Dates", page: "BlackoutDates", icon: AlertTriangle, roles: ["admin", "team_manager"] },
   { label: "Officials", page: "Officials", icon: Shield, roles: ["admin", "referee_coordinator"] },
   { label: "Official Availability", page: "OfficialAvailability", icon: Calendar, roles: ["referee", "timekeeper"] },
@@ -30,6 +31,7 @@ const PAGE_ROLE_REQUIREMENTS = {
   TeamsAndDivisions: ["admin"],
   IceSlots: ["admin"],
   ScheduleBuilder: ["admin"],
+  ScheduleVerification: ["admin"],
   AssignOfficials: ["admin", "referee_coordinator"],
   Officials: ["admin", "referee_coordinator"],
   UserManagement: ["admin"],
