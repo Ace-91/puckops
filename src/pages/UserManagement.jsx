@@ -285,9 +285,11 @@ export default function UserManagement() {
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Certification</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Divisions</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Contact</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Max Games/Wk</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Max/Wk</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-900">
