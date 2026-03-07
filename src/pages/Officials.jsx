@@ -99,7 +99,8 @@ export default function Officials() {
           <p className="text-gray-400 text-sm mt-1">{refs.length} referees · {tks.length} timekeepers</p>
         </div>
         <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }}
-          className="flex items-center gap-2 bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          className="flex items-center gap-2 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          style={{ background: SILVER }}>
           <Plus className="w-4 h-4" /> Add Official
         </button>
       </div>
