@@ -157,10 +157,43 @@ export default function Forfeits() {
       const others = forfeitResponses.filter(r => r.forfeit_id === resp.forfeit_id && r.id !== responseId && r.response === "pending");
       for (const o of others) await base44.entities.ForfeitResponse.update(o.id, { response: "declined" });
 
+      // Update the game: swap in the replacement team, mark as scheduled again
+      if (forfeit?.game_id) {
+        const isHome = forfeit.forfeiting_team_id === forfeit.opposing_team_id; // replacement takes the forfeiting team's spot
+        const updateFields = forfeit.forfeiting_team_id
+          ? {
+              status: "scheduled",
+              notes: `Replacement: ${forfeit.forfeiting_team_name} forfeited — replaced by ${resp.team_name}`,
+              // Replace the forfeiting team's slot (check if they were home or away)
+              home_team_id: undefined,
+              away_team_id: undefined,
+            }
+          : {};
+        // Determine which side the forfeiting team was on by fetching the game
+        const allGames = games.length > 0 ? games : [];
+        const theGame = allGames.find(g => g.id === forfeit.game_id);
+        if (theGame) {
+          const forfeitingWasHome = theGame.home_team_id === forfeit.forfeiting_team_id;
+          await base44.entities.Game.update(forfeit.game_id, {
+            status: "scheduled",
+            ...(forfeitingWasHome
+              ? { home_team_id: resp.team_id, home_team_name: resp.team_name }
+              : { away_team_id: resp.team_id, away_team_name: resp.team_name }),
+            notes: `Replacement: ${forfeit.forfeiting_team_name} forfeited — replaced by ${resp.team_name}`,
+          });
+        } else {
+          // Fallback: just mark scheduled with a note
+          await base44.entities.Game.update(forfeit.game_id, {
+            status: "scheduled",
+            notes: `Replacement: ${forfeit.forfeiting_team_name} forfeited — replaced by ${resp.team_name}`,
+          });
+        }
+      }
+
       // Notify admin
       await notifyAdmin(
         `Replacement Found – ${forfeit?.division_name} – ${forfeit?.game_date} ${forfeit?.game_time}`,
-        `A replacement team has been found for a forfeited slot.\n\nGame: ${forfeit?.game_date} ${forfeit?.game_time} at ${forfeit?.arena_name}\nDivision: ${forfeit?.division_name}\nOriginal Forfeit: ${forfeit?.forfeiting_team_name}\nReplacement Team: ${resp.team_name}\n\nLog in to HockeyOps to confirm the updated schedule.\n\nHockeyOps`
+        `A replacement team has been found for a forfeited slot.\n\nGame: ${forfeit?.game_date} ${forfeit?.game_time} at ${forfeit?.arena_name}\nDivision: ${forfeit?.division_name}\nOriginal Forfeit: ${forfeit?.forfeiting_team_name}\nReplacement Team: ${resp.team_name}\n\nThe schedule has been updated automatically. Log in to HockeyOps to review.\n\nHockeyOps`
       );
     } else {
       // Check if ALL responses are now non-pending after this decline
