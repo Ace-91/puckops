@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw, Clock } from "lucide-react";
+import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw, Clock, FileDown } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
 import IceSlotCalculator from "@/components/IceSlotCalculator";
 
