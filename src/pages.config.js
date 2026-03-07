@@ -61,9 +61,9 @@ import PublicBlackoutForm from './pages/PublicBlackoutForm';
 import PublicForfeitForm from './pages/PublicForfeitForm';
 import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
+import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import ScheduleVerification from './pages/ScheduleVerification';
 import __Layout from './Layout.jsx';
 
 
@@ -82,9 +82,9 @@ export const PAGES = {
     "PublicForfeitForm": PublicForfeitForm,
     "Schedule": Schedule,
     "ScheduleBuilder": ScheduleBuilder,
+    "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "ScheduleVerification": ScheduleVerification,
 }
 
 export const pagesConfig = {

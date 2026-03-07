@@ -12,7 +12,8 @@ const NEWS_ITEMS = [
 ];
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ teams: 0, games: 0, officials: 0, forfeits: 0, pendingBlackouts: 0 });
+  const [stats, setStats] = useState({ teams: 0, games: 0, officials: 0, forfeits: 0, pendingBlackouts: 0, pendingOfficials: 0 });
+  const [pendingOfficials, setPendingOfficials] = useState([]);
   const [upcomingGames, setUpcomingGames] = useState([]);
   const [recentForfeits, setRecentForfeits] = useState([]);
   const [leagueBlackouts, setLeagueBlackouts] = useState([]);

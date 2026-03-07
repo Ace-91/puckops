@@ -33,7 +33,7 @@ function TKAvatar({ name, size = 36 }) {
   );
 }
 
-const emptyForm = { full_name: "", user_email: "", phone: "", role: "referee", certification_level: "level2", preferred_divisions: [], max_games_per_week: 5, notes: "", is_active: true };
+const emptyForm = { full_name: "", user_email: "", phone: "", role: "referee", certification_level: "level2", preferred_divisions: [], max_games_per_week: 5, notes: "", is_active: true, approval_status: "approved" };
 
 export default function Officials() {
   const [officials, setOfficials] = useState([]);
