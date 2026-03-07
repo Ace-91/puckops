@@ -153,7 +153,7 @@ export default function Officials() {
                 <div className="mt-2 flex flex-wrap gap-1">
                   {o.preferred_divisions.map(divId => {
                     const d = divisions.find(x => x.id === divId);
-                    return d ? <span key={divId} className="text-xs bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded">{d.name}</span> : null;
+                    return d ? <span key={divId} className="text-xs px-1.5 py-0.5 rounded border" style={{ borderColor: `${GOLD}40`, color: GOLD, background: `${GOLD}10` }}>{d.name}</span> : null;
                   })}
                 </div>
               )}
