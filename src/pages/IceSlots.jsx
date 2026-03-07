@@ -206,11 +206,17 @@ export default function IceSlots() {
     }
     if (slotsToCreate.length === 0) { alert("No new slots to create (all may already exist)."); return; }
     setBulkMode(false);
-    setProgress({ title: "Creating Ice Slots", current: 0, total: slotsToCreate.length });
-    // bulkCreate sends all in one API call
-    await base44.entities.IceSlot.bulkCreate(slotsToCreate);
-    setProgress({ title: "Creating Ice Slots", current: slotsToCreate.length, total: slotsToCreate.length });
-    await new Promise(r => setTimeout(r, 400));
+    const total = slotsToCreate.length;
+    setProgress({ title: "Creating Ice Slots", current: 0, total });
+    // bulkCreate in chunks of 50 to avoid rate limits
+    let done = 0;
+    for (let i = 0; i < slotsToCreate.length; i += 50) {
+      const chunk = slotsToCreate.slice(i, i + 50);
+      await base44.entities.IceSlot.bulkCreate(chunk);
+      done += chunk.length;
+      setProgress({ title: "Creating Ice Slots", current: done, total });
+      if (i + 50 < slotsToCreate.length) await new Promise(r => setTimeout(r, 1000));
+    }
     setProgress(null);
     loadAll();
   };
