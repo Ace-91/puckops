@@ -43,6 +43,7 @@ export default function Officials() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filterRole, setFilterRole] = useState("all");
+  const [filterApproval, setFilterApproval] = useState("all");
 
   useEffect(() => {
     const load = async () => {

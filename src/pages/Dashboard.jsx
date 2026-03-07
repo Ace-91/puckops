@@ -51,7 +51,9 @@ export default function Dashboard() {
       officials: officials.length,
       forfeits: forfeits.length,
       pendingBlackouts: blackouts.filter(b => b.status === "pending").length,
+      pendingOfficials: officials.filter(o => o.approval_status === "pending").length,
     });
+    setPendingOfficials(officials.filter(o => o.approval_status === "pending"));
     const today = new Date().toISOString().split("T")[0];
     setUpcomingGames(games.filter(g => g.date >= today && g.status === "scheduled").slice(0, 6));
     setRecentForfeits(forfeits.slice(0, 5));
