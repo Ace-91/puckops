@@ -294,6 +294,44 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Pending Officials Approval */}
+          {isAdmin && pendingOfficials.length > 0 && (
+            <div className="rounded-xl border p-5" style={{ background: "#0a0a0a", borderColor: "#d4af3740" }}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                  <span style={{ color: GOLD }}>⏳</span> Officials Awaiting Approval ({pendingOfficials.length})
+                </h2>
+                <Link to={createPageUrl("Officials")} className="text-xs flex items-center gap-1 hover:text-white transition-colors" style={{ color: SILVER }}>
+                  Manage all <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {pendingOfficials.map(o => (
+                  <div key={o.id} className="flex items-center justify-between rounded-lg px-4 py-2.5 border border-gray-800" style={{ background: "#111" }}>
+                    <div>
+                      <div className="text-sm font-medium text-white">{o.full_name}</div>
+                      <div className="text-xs text-gray-500 capitalize">{o.role}{o.certification_level ? ` · ${o.certification_level}` : ""}{o.user_email ? ` · ${o.user_email}` : ""}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={async () => {
+                        await base44.entities.Official.update(o.id, { approval_status: "approved" });
+                        await reload();
+                      }} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/20">
+                        <CheckSquare className="w-3.5 h-3.5" /> Approve
+                      </button>
+                      <button onClick={async () => {
+                        await base44.entities.Official.update(o.id, { approval_status: "rejected" });
+                        await reload();
+                      }} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg bg-red-500/15 text-red-400 hover:bg-red-500/25 border border-red-500/20">
+                        <XSquare className="w-3.5 h-3.5" /> Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Forfeits & League Blackouts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="rounded-xl border p-5" style={{ background: "#0a0a0a", borderColor: "#2a2a2a" }}>
