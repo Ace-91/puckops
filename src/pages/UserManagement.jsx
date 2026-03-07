@@ -36,14 +36,18 @@ export default function UserManagement() {
   const [showInvite, setShowInvite] = useState(false);
   const [resetSent, setResetSent] = useState({}); // { [userId]: "sending" | "sent" | "error" }
 
+  const [divisions, setDivisions] = useState([]);
+
   const load = async () => {
     setLoading(true);
-    const [u, o] = await Promise.all([
+    const [u, o, d] = await Promise.all([
       base44.entities.User.list(),
       base44.entities.Official.list(),
+      base44.entities.Division.list(),
     ]);
     setUsers(u);
     setOfficials(o);
+    setDivisions(d);
     setLoading(false);
   };
 
