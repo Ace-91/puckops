@@ -137,8 +137,9 @@ export default function IceSlots() {
       await new Promise(r => setTimeout(r, 400));
     }
 
-    setCsvResult({ created: toCreate.length, updated, skipped });
+    setCsvResult({ created, updated, skipped });
     setCsvImporting(false);
+    await new Promise(r => setTimeout(r, 1500));
     loadAll();
   };
 
