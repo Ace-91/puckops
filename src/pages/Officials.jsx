@@ -191,7 +191,7 @@ export default function Officials() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">Role</label>
-                  <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  <select className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" style={{ borderColor: "#333" }}
                     value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
                     <option value="referee">Referee</option>
                     <option value="timekeeper">Timekeeper</option>
@@ -199,7 +199,7 @@ export default function Officials() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-400 block mb-1">Certification Level</label>
-                  <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                  <select className="w-full bg-black border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" style={{ borderColor: "#333" }}
                     value={form.certification_level} onChange={e => setForm(f => ({ ...f, certification_level: e.target.value }))}>
                     {["level1","level2","level3","level4","level5"].map(l => <option key={l} value={l}>{l.replace("level","Level ")}</option>)}
                   </select>
