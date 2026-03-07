@@ -53,6 +53,10 @@ export default function Layout({ children, currentPageName }) {
   const userRole = user?.role || "team_manager";
   const visibleNav = navItems.filter(item => item.roles.includes(userRole) || userRole === "admin");
 
+  // Role-gate the current page
+  const pageRequirements = PAGE_ROLE_REQUIREMENTS[currentPageName];
+  const isAccessDenied = user !== null && pageRequirements && !pageRequirements.includes(userRole) && userRole !== "admin";
+
   // Silver/gold theme colours
   const SILVER = "#c0c0c0";
   const GOLD = "#d4af37";
@@ -181,7 +185,16 @@ export default function Layout({ children, currentPageName }) {
       )}
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
-        {children}
+        {isAccessDenied ? (
+          <div className="flex flex-col items-center justify-center h-64 gap-4">
+            <Lock className="w-12 h-12 text-gray-600" />
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-white mb-1">Access Restricted</h2>
+              <p className="text-gray-400 text-sm">You don't have permission to view this page.</p>
+              <p className="text-gray-600 text-xs mt-1">Required role: {pageRequirements?.join(" or ")}</p>
+            </div>
+          </div>
+        ) : children}
       </main>
 
       <footer className="py-4 text-center text-xs border-t" style={{ background: "#0a0a0a", borderColor: "#1a1a1a", color: "#555" }}>
