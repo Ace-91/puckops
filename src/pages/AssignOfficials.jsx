@@ -242,7 +242,7 @@ export default function AssignOfficials() {
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Assign Officials</h1>
-          <p className="text-gray-400 text-sm mt-0.5">{unassigned} games need officials · Drag or use auto-assign</p>
+          <p className="text-gray-400 text-sm mt-0.5">{games.length} upcoming games · {unassigned} need officials assigned</p>
         </div>
         <div className="flex gap-3 items-center">
           {saving && <span className="text-xs text-sky-400 animate-pulse">Saving...</span>}
