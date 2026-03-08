@@ -126,7 +126,7 @@ export default function Forfeits() {
     }
 
     setShowForm(false);
-    setForm({ game_id: "", reason: "" });
+    setForm({ team_id: "", game_id: "", reason: "" });
     await reload();
     setSending(false);
   };
