@@ -20,7 +20,7 @@ export default function Forfeits() {
   const [showForm, setShowForm] = useState(false);
   const [sending, setSending] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
-  const [form, setForm] = useState({ game_id: "", reason: "" });
+  const [form, setForm] = useState({ team_id: "", game_id: "", reason: "" });
 
   const reload = async () => {
     const [f, fr] = await Promise.all([
