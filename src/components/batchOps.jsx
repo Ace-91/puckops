@@ -9,7 +9,7 @@
  * @param {number}   concurrency - Items per batch (default 8)
  * @param {number}   batchDelay  - ms between batches (default 600)
  */
-export async function batchProcess(items, fn, onProgress = () => {}, cancelRef = null, concurrency = 8, batchDelay = 600) {
+export async function batchProcess(items, fn, onProgress = () => {}, cancelRef = null, concurrency = 4, batchDelay = 1000) {
   let completed = 0;
   for (let i = 0; i < items.length; i += concurrency) {
     if (cancelRef?.current) break;
