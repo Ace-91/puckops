@@ -46,7 +46,7 @@ export async function batchUpdate(items, updateFn, onProgress = () => {}, cancel
  * @param {number}   chunkSize - Items per bulkCreate call (default 25)
  * @param {number}   delay     - ms between chunks (default 1200)
  */
-export async function bulkCreateInChunks(items, bulkFn, onProgress = () => {}, chunkSize = 25, delay = 1200) {
+export async function bulkCreateInChunks(items, bulkFn, onProgress = () => {}, chunkSize = 15, delay = 1500) {
   let created = 0;
   for (let i = 0; i < items.length; i += chunkSize) {
     const chunk = items.slice(i, i + chunkSize);
