@@ -76,6 +76,23 @@ export default function TeamsAndDivisions() {
     URL.revokeObjectURL(url);
   };
 
+  const exportCombinedCSV = () => {
+    const rows = [["division_name", "division_level", "games_per_team", "team_name", "manager_name", "manager_email", "manager_phone", "season"]];
+    divisions.forEach(d => {
+      const divTeams = teams.filter(t => t.division_id === d.id);
+      if (divTeams.length === 0) {
+        rows.push([d.name, d.level || "", d.games_per_team || 30, "", "", "", "", d.season || ""]);
+      } else {
+        divTeams.forEach(t => rows.push([d.name, d.level || "", d.games_per_team || 30, t.name, t.manager_name || "", t.manager_email || "", t.manager_phone || "", t.season || ""]));
+      }
+    });
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "divisions_and_teams_export.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadTemplate = () => {
     const csv = "division_name,team_name,manager_name,manager_email,manager_phone,season\nDivision AA,Thunder Hawks,John Smith,john@email.com,555-1234,2025-2026\nDivision AA,Ice Wolves,Jane Doe,jane@email.com,555-5678,2025-2026";
     const blob = new Blob([csv], { type: "text/csv" });
