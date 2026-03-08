@@ -21,6 +21,8 @@ export default function IceSlots() {
   const [arenas, setArenas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [games, setGames] = useState([]);
+  const [divisions, setDivisions] = useState([]);
+  const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showArenaForm, setShowArenaForm] = useState(false);
   const [showSlotForm, setShowSlotForm] = useState(false);
