@@ -58,13 +58,13 @@ export default function Forfeits() {
   );
 
   const submit = async () => {
-    if (!form.game_id || !form.reason) { alert("Please select a game and provide a reason."); return; }
+    if (!form.team_id || !form.game_id || !form.reason) { alert("Please select your team, a game, and provide a reason."); return; }
     setSending(true);
     const game = games.find(g => g.id === form.game_id);
     if (!game) { setSending(false); return; }
 
-    const forfeitingTeam = myTeams.find(t => t.id === game.home_team_id || t.id === game.away_team_id)
-      || (isAdmin ? teams.find(t => t.id === game.home_team_id) : null);
+    const forfeitingTeam = teams.find(t => t.id === form.team_id)
+      || myTeams.find(t => t.id === game.home_team_id || t.id === game.away_team_id);
     const opposingTeamId = game.home_team_id === forfeitingTeam?.id ? game.away_team_id : game.home_team_id;
     const opposingTeam = teams.find(t => t.id === opposingTeamId);
 
