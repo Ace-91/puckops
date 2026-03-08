@@ -386,18 +386,38 @@ export default function Forfeits() {
               <br />If 48+ hours before game time, other teams will be notified to claim the slot.
             </div>
             <div className="space-y-4">
+              {/* Step 1: Select team */}
               <div>
-                <label className="text-sm text-gray-400 block mb-1">Select Game *</label>
+                <label className="text-sm text-gray-400 block mb-1">Step 1: Select Your Team *</label>
                 <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
-                  value={form.game_id} onChange={e => setForm(f => ({ ...f, game_id: e.target.value }))}>
-                  <option value="">Choose a game...</option>
-                  {myGames.map(g => (
-                    <option key={g.id} value={g.id}>
-                      {g.date} {g.start_time} – {g.home_team_name} vs {g.away_team_name} ({g.division_name})
-                    </option>
+                  value={form.team_id} onChange={e => setForm(f => ({ ...f, team_id: e.target.value, game_id: "" }))}>
+                  <option value="">Choose your team...</option>
+                  {(isAdmin ? teams : myTeams).map(t => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.division_name})</option>
                   ))}
                 </select>
               </div>
+
+              {/* Step 2: Select game (filtered by team) */}
+              {form.team_id && (() => {
+                const teamGames = games.filter(g => g.home_team_id === form.team_id || g.away_team_id === form.team_id);
+                return (
+                  <div>
+                    <label className="text-sm text-gray-400 block mb-1">Step 2: Select Game to Forfeit *</label>
+                    <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-sky-500"
+                      value={form.game_id} onChange={e => setForm(f => ({ ...f, game_id: e.target.value }))}>
+                      <option value="">Choose a game...</option>
+                      {teamGames.map(g => (
+                        <option key={g.id} value={g.id}>
+                          {g.date} {g.start_time} – {g.home_team_name} vs {g.away_team_name} ({g.division_name})
+                        </option>
+                      ))}
+                    </select>
+                    {teamGames.length === 0 && <p className="text-xs text-gray-500 mt-1">No upcoming scheduled games found for this team.</p>}
+                  </div>
+                );
+              })()}
+
               {form.game_id && (() => {
                 const game = games.find(g => g.id === form.game_id);
                 const hoursUntil = game ? (new Date(game.date + "T" + (game.start_time || "12:00") + ":00") - new Date()) / (1000 * 60 * 60) : 0;
@@ -406,7 +426,7 @@ export default function Forfeits() {
                     <Clock className="w-4 h-4 shrink-0" />
                     {hoursUntil > 48
                       ? `${Math.round(hoursUntil)}h until game — replacement will be sought`
-                      : `Only ${Math.round(hoursUntil)}h until game — forfeit confirmed, no replacement`}
+                      : `Only ${Math.round(Math.max(0, hoursUntil))}h until game — forfeit confirmed, no replacement`}
                   </div>
                 );
               })()}
