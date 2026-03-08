@@ -361,7 +361,7 @@ export default function IceSlots() {
       </div>
 
       {/* Ice Slot Calculator */}
-      <IceSlotCalculator slots={slots} />
+      <IceSlotCalculator slots={slots} divisions={divisions} teams={teams} />
 
       {/* Arenas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
