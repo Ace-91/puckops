@@ -1,16 +1,40 @@
-import { useState } from "react";
-import { Clock, Plus, Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Clock, Plus, Trash2, RefreshCw } from "lucide-react";
 
-export default function IceSlotCalculator({ slots }) {
+export default function IceSlotCalculator({ slots, divisions = [], teams = [] }) {
   const availableCount = slots.filter(s => s.is_available).length;
 
   const [rows, setRows] = useState([
     { id: 1, label: "Division 1", teams: 8, games: 30 },
   ]);
 
+  // Auto-populate from real divisions when they load
+  useEffect(() => {
+    if (divisions.length > 0) {
+      const autoRows = divisions.map((d, i) => ({
+        id: d.id || i + 1,
+        label: d.name,
+        teams: teams.filter(t => t.division_id === d.id).length || 0,
+        games: d.games_per_team || 30,
+      }));
+      setRows(autoRows);
+    }
+  }, [divisions, teams]);
+
   const addRow = () => setRows(prev => [...prev, { id: Date.now(), label: `Division ${prev.length + 1}`, teams: 8, games: 30 }]);
   const removeRow = (id) => setRows(prev => prev.filter(r => r.id !== id));
   const updateRow = (id, field, value) => setRows(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
+
+  const resetFromDivisions = () => {
+    if (divisions.length > 0) {
+      setRows(divisions.map((d, i) => ({
+        id: d.id || i + 1,
+        label: d.name,
+        teams: teams.filter(t => t.division_id === d.id).length || 0,
+        games: d.games_per_team || 30,
+      })));
+    }
+  };
 
   const totalNeeded = rows.reduce((sum, r) => sum + Math.ceil((r.teams * r.games) / 2), 0);
   const diff = availableCount - totalNeeded;
@@ -23,9 +47,16 @@ export default function IceSlotCalculator({ slots }) {
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <Clock className="w-4 h-4" style={{ color: "#d4af37" }} /> Ice Slot Calculator
         </h2>
-        <button onClick={addRow} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium text-black" style={{ background: "#c0c0c0" }}>
-          <Plus className="w-3 h-3" /> Add Division
-        </button>
+        <div className="flex gap-2">
+          {divisions.length > 0 && (
+            <button onClick={resetFromDivisions} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium text-gray-400 border border-gray-700 hover:text-white">
+              <RefreshCw className="w-3 h-3" /> Sync from League
+            </button>
+          )}
+          <button onClick={addRow} className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg font-medium text-black" style={{ background: "#c0c0c0" }}>
+            <Plus className="w-3 h-3" /> Add Row
+          </button>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
