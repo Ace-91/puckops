@@ -50,14 +50,18 @@ export default function IceSlots() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [a, s, g] = await Promise.all([
+    const [a, s, g, d, t] = await Promise.all([
       base44.entities.Arena.list(),
       base44.entities.IceSlot.list("date", 5000),
       base44.entities.Game.list("date", 2000),
+      base44.entities.Division.list(),
+      base44.entities.Team.list(),
     ]);
     setArenas(a);
     setSlots(s);
     setGames(g);
+    setDivisions(d);
+    setTeams(t);
     setSelectedIds(new Set());
     setLoading(false);
   };
