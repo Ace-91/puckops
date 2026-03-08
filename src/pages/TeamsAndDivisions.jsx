@@ -145,20 +145,23 @@ export default function TeamsAndDivisions() {
     const total = toCreate.length + toUpdate.length;
     setImportProgress({ current: 0, total, done: false });
 
-    // Bulk-create new teams in chunks of 20
-    await bulkCreateInChunks(
-      toCreate,
-      chunk => base44.entities.Team.bulkCreate(chunk),
-      (current) => setImportProgress({ current, total, done: false }),
-      20, 800
-    );
+    // Bulk-create new teams one-by-one for smooth progress
+    let doneCount = 0;
+    const CHUNK_SIZE = 5;
+    for (let i = 0; i < toCreate.length; i += CHUNK_SIZE) {
+      const chunk = toCreate.slice(i, i + CHUNK_SIZE);
+      await base44.entities.Team.bulkCreate(chunk);
+      doneCount += chunk.length;
+      setImportProgress({ current: doneCount, total, done: false });
+      await new Promise(r => setTimeout(r, 300));
+    }
 
-    // Batch-update existing teams
-    await batchUpdate(
-      toUpdate,
-      ({ id, data }) => base44.entities.Team.update(id, data),
-      (current) => setImportProgress({ current: toCreate.length + current, total, done: false }),
-    );
+    // Batch-update existing teams with smooth progress
+    for (let i = 0; i < toUpdate.length; i++) {
+      await base44.entities.Team.update(toUpdate[i].id, toUpdate[i].data);
+      doneCount++;
+      setImportProgress({ current: doneCount, total, done: false });
+    }
 
     setImportProgress({ current: total, total, done: true });
     setImportResult({ created: toCreate.length, updated: toUpdate.length, skipped, errors: [] });
