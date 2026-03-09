@@ -281,22 +281,23 @@ export default function IceSlots() {
     cancelRef.current = false;
     setProgress({ title: "Unassigning Ice Slots", current: 0, total: usedSelected.length });
 
-    for (let i = 0; i < usedSelected.length; i += 5) {
+    for (let i = 0; i < usedSelected.length; i++) {
       if (cancelRef.current) break;
-      const chunk = usedSelected.slice(i, i + 5);
-      await Promise.all(chunk.map(async (slotId) => {
-        const slot = slots.find(s => s.id === slotId);
-        if (slot) {
-          const linked = games.filter(g =>
-            g.ice_slot_id === slotId ||
-            (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
-          );
-          await Promise.all(linked.map(g => base44.entities.Game.update(g.id, { ice_slot_id: "", arena_id: "", arena_name: "" })));
+      const slotId = usedSelected[i];
+      const slot = slots.find(s => s.id === slotId);
+      if (slot) {
+        const linked = games.filter(g =>
+          g.ice_slot_id === slotId ||
+          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+        );
+        for (const g of linked) {
+          await base44.entities.Game.update(g.id, { ice_slot_id: "", arena_id: "", arena_name: "" });
+          await new Promise(r => setTimeout(r, 150));
         }
-        await base44.entities.IceSlot.update(slotId, { is_available: true });
-      }));
-      setProgress({ title: "Unassigning Ice Slots", current: Math.min(i + 5, usedSelected.length), total: usedSelected.length });
-      if (i + 5 < usedSelected.length) await new Promise(r => setTimeout(r, 150));
+      }
+      await base44.entities.IceSlot.update(slotId, { is_available: true });
+      setProgress({ title: "Unassigning Ice Slots", current: i + 1, total: usedSelected.length });
+      await new Promise(r => setTimeout(r, 200));
     }
     setProgress(null);
     await loadAll();
