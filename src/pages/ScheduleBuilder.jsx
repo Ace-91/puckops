@@ -3,10 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { Shuffle, AlertCircle, CheckCircle, Moon, Eye, Trash2, Loader2, AlertTriangle, ChevronDown, Plus, X, Calendar } from "lucide-react";
 import { batchDelete, batchUpdate } from "@/components/batchOps";
 
-const isLateTime = (t) => {
+const isLateTime = (t, lateHour = 22) => {
   if (!t) return false;
-  const [h] = t.split(":").map(Number);
-  return h >= 22;
+  const [h, m] = t.split(":").map(Number);
+  return h > lateHour || (h === lateHour && m >= 0);
 };
 
 const daysBetween = (d1, d2) => Math.abs(new Date(d1) - new Date(d2)) / (1000 * 60 * 60 * 24);
