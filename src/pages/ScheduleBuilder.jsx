@@ -40,8 +40,9 @@ export default function ScheduleBuilder() {
   const [newBlackout, setNewBlackout] = useState({ date_from: "", date_to: "", reason: "" });
   const [showBlackoutForm, setShowBlackoutForm] = useState(false);
 
+  const [lateGameHour, setLateGameHour] = useState(22);
+
   const [constraints, setConstraints] = useState({
-    noBackToBack: true,
     noSameDay: true,
     minGapDays: 2,
     maxDaysBetweenGames: 10,
