@@ -123,14 +123,18 @@ export default function IceSlots() {
       });
     }
 
-    // Step 1: delete all existing slots
+    // Step 1: delete all existing slots — sequential to avoid rate limits
     const existingSlots = await base44.entities.IceSlot.list("date", 9999);
     setCsvProgress({ current: 0, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
-    for (let i = 0; i < existingSlots.length; i += 20) {
-      await Promise.all(existingSlots.slice(i, i + 20).map(s => base44.entities.IceSlot.delete(s.id)));
-      setCsvProgress({ current: i + 20, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
-      await new Promise(r => setTimeout(r, 500));
+    for (let i = 0; i < existingSlots.length; i++) {
+      await base44.entities.IceSlot.delete(existingSlots[i].id);
+      await new Promise(r => setTimeout(r, 150));
+      if (i % 10 === 9) {
+        setCsvProgress({ current: i + 1, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
+        await new Promise(r => setTimeout(r, 600)); // extra pause every 10
+      }
     }
+    setCsvProgress({ current: existingSlots.length, total: existingSlots.length + toCreate.length, phase: "Deleting old slots" });
 
     // Step 2: bulk-create new slots
     const BULK_SIZE = 50;
