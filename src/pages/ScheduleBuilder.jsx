@@ -143,11 +143,11 @@ export default function ScheduleBuilder() {
         const isTeamBlackedOut = (tid, date) =>
           (teamBlackoutsMap[tid] || []).some(b => date >= b.date_from && date <= (b.date_to || b.date_from));
 
-        // Total late ratio across pool
-        const totalLateSlots = poolSlots.filter(s => isLateTime(s.start_time)).length;
+        // Late game ratio from slot pool
+        const totalLateSlots = poolSlots.filter(s => isLateTime(s.start_time, lateGameHour)).length;
         const lateRatio = poolSlots.length > 0 ? totalLateSlots / poolSlots.length : 0;
 
-        // Build per-division state
+        // Build per-division matchup QUEUES (rotating — failed matchups go to back)
         const divDataMap = {};
         const activeDivIds = [];
 
@@ -157,182 +157,145 @@ export default function ScheduleBuilder() {
           if (divTeams.length < 2) continue;
 
           const targetGames = division?.games_per_team || 30;
-          const matchups = [];
+
+          // Build full round-robin matchup list, repeated enough times to cover target
+          const baseMatchups = [];
           for (let i = 0; i < divTeams.length; i++)
             for (let j = i + 1; j < divTeams.length; j++)
-              matchups.push([divTeams[i], divTeams[j]]);
+              baseMatchups.push([divTeams[i], divTeams[j]]);
 
-          const gamesPerRR = matchups.length;
-          // Generate generous buffer of matchups (2x needed) — hard cap prevents over-scheduling
-          const roundRobins = Math.max(1, Math.ceil((targetGames * divTeams.length / 2) / Math.max(gamesPerRR, 1) * 2));
-          let allMatchups = [];
-          for (let r = 0; r < roundRobins; r++)
-            allMatchups = allMatchups.concat([...matchups].sort(() => Math.random() - 0.5));
+          const totalGamesNeeded = Math.ceil(targetGames * divTeams.length / 2);
+          const rounds = Math.ceil(totalGamesNeeded / baseMatchups.length) + 1; // +1 buffer
+          let matchupQueue = [];
+          for (let r = 0; r < rounds; r++)
+            matchupQueue = matchupQueue.concat([...baseMatchups].sort(() => Math.random() - 0.5));
 
           const teamGameDates = {}, teamLateCounts = {}, teamGameCount = {};
-          divTeams.forEach(t => { teamGameDates[t.id] = []; teamLateCounts[t.id] = 0; teamGameCount[t.id] = 0; });
+          divTeams.forEach(t => { teamGameDates[t.id] = new Set(); teamLateCounts[t.id] = 0; teamGameCount[t.id] = 0; });
 
           divDataMap[divId] = {
             division, divTeams, targetGames,
-            allMatchups, matchupIndex: 0,
+            matchupQueue, // rotating queue
             teamGameDates, teamLateCounts, teamGameCount,
-            unscheduled: 0,
           };
           activeDivIds.push(divId);
         }
 
         const scheduledGames = [];
-        const GAMES_PER_DIV_PER_ROUND = 2; // How many games per div per interleave cycle
 
-        // Interleaved scheduling loop
-        let anyProgress = true;
-        while (anyProgress) {
-          anyProgress = false;
+        // Per-division scheduling: process each division fully using rotating queue
+        for (const divId of activeDivIds) {
+          const dd = divDataMap[divId];
+          const minGap = constraints.minGapDays || 0;
+          const targetLatePerTeam = Math.round(lateRatio * dd.targetGames);
 
-          for (const divId of activeDivIds) {
-            const dd = divDataMap[divId];
-            let scheduledThisRound = 0;
+          // Check if all teams are done
+          const allDone = () => dd.divTeams.every(t => dd.teamGameCount[t.id] >= dd.targetGames);
 
-            while (scheduledThisRound < GAMES_PER_DIV_PER_ROUND) {
-              // Find next matchup where both teams still need games
-              let matchup = null;
-              while (dd.matchupIndex < dd.allMatchups.length) {
-                const [h, a] = dd.allMatchups[dd.matchupIndex];
-                dd.matchupIndex++;
-                if (dd.teamGameCount[h.id] < dd.targetGames && dd.teamGameCount[a.id] < dd.targetGames) {
-                  matchup = [h, a];
-                  break;
-                }
-              }
-              if (!matchup) break;
+          let consecutiveFails = 0;
+          const MAX_FAILS = dd.matchupQueue.length; // give up after exhausting the queue once
 
-              const [home, away] = matchup;
+          while (!allDone() && consecutiveFails < MAX_FAILS && dd.matchupQueue.length > 0) {
+            const [home, away] = dd.matchupQueue.shift(); // take from front
 
-              // Target late games per team
-              const targetLatePerTeam = Math.round(lateRatio * dd.targetGames);
-              const homeNeedsLate = dd.teamLateCounts[home.id] < targetLatePerTeam;
-              const awayNeedsLate = dd.teamLateCounts[away.id] < targetLatePerTeam;
-              const homeAtLateLimit = dd.teamLateCounts[home.id] >= targetLatePerTeam;
-              const awayAtLateLimit = dd.teamLateCounts[away.id] >= targetLatePerTeam;
-              const preferNonLate = homeAtLateLimit && awayAtLateLimit;
+            // Skip if either team is already at target
+            if (dd.teamGameCount[home.id] >= dd.targetGames || dd.teamGameCount[away.id] >= dd.targetGames) {
+              consecutiveFails++;
+              continue;
+            }
 
-              // Sort pool based on late game preference
-              let availableSlots = poolSlots.filter(s => !globalUsedSlots.has(s.id));
-              let sortedPool;
-              if (homeNeedsLate || awayNeedsLate) {
-                // Prioritize late slots for teams that need them
-                sortedPool = [
-                  ...availableSlots.filter(s => isLateTime(s.start_time)),
-                  ...availableSlots.filter(s => !isLateTime(s.start_time)),
-                ];
-              } else if (preferNonLate) {
-                sortedPool = [
-                  ...availableSlots.filter(s => !isLateTime(s.start_time)),
-                  ...availableSlots.filter(s => isLateTime(s.start_time)),
-                ];
-              } else {
-                sortedPool = availableSlots;
-              }
+            const homeLastDate = dd.teamGameDates[home.id].size > 0
+              ? [...dd.teamGameDates[home.id]].sort().at(-1) : null;
+            const awayLastDate = dd.teamGameDates[away.id].size > 0
+              ? [...dd.teamGameDates[away.id]].sort().at(-1) : null;
 
-              // Enforce maxDaysBetweenGames: find deadline for each team
-              const homeLastDate = dd.teamGameDates[home.id].length > 0
-                ? [...dd.teamGameDates[home.id]].sort().at(-1) : null;
-              const awayLastDate = dd.teamGameDates[away.id].length > 0
-                ? [...dd.teamGameDates[away.id]].sort().at(-1) : null;
+            // Deadline from max gap constraint
+            let deadlineDate = null;
+            if (constraints.maxDaysBetweenGames > 0) {
+              const hd = homeLastDate ? addDaysToDate(homeLastDate, constraints.maxDaysBetweenGames) : null;
+              const ad = awayLastDate ? addDaysToDate(awayLastDate, constraints.maxDaysBetweenGames) : null;
+              if (hd && ad) deadlineDate = hd < ad ? hd : ad;
+              else deadlineDate = hd || ad;
+            }
 
-              let deadlineDate = null;
-              if (constraints.maxDaysBetweenGames > 0) {
-                const homeDeadline = homeLastDate ? addDaysToDate(homeLastDate, constraints.maxDaysBetweenGames) : null;
-                const awayDeadline = awayLastDate ? addDaysToDate(awayLastDate, constraints.maxDaysBetweenGames) : null;
-                if (homeDeadline && awayDeadline) deadlineDate = homeDeadline < awayDeadline ? homeDeadline : awayDeadline;
-                else deadlineDate = homeDeadline || awayDeadline;
-              }
+            // Late preference
+            const homeNeedsLate = dd.teamLateCounts[home.id] < targetLatePerTeam;
+            const awayNeedsLate = dd.teamLateCounts[away.id] < targetLatePerTeam;
+            const preferNonLate = !homeNeedsLate && !awayNeedsLate;
 
-              // Try within deadline first, then relax if no slots found
-              let candidates = deadlineDate ? sortedPool.filter(s => s.date <= deadlineDate) : sortedPool;
-              if (candidates.length === 0) candidates = sortedPool;
+            const availableSlots = poolSlots.filter(s => !globalUsedSlots.has(s.id));
 
-              let assigned = false;
-              for (const slot of candidates) {
-                if (globalUsedSlots.has(slot.id)) continue;
-                if (leagueBlackoutDates.has(slot.date)) continue;
-                if (isTeamBlackedOut(home.id, slot.date) || isTeamBlackedOut(away.id, slot.date)) continue;
-                if (constraints.noSameDay && (
-                  dd.teamGameDates[home.id].includes(slot.date) ||
-                  dd.teamGameDates[away.id].includes(slot.date)
-                )) continue;
+            // Sort by: deadline compliance first, then late preference
+            let candidates = deadlineDate
+              ? availableSlots.filter(s => s.date <= deadlineDate)
+              : availableSlots;
+            if (candidates.length === 0) candidates = availableSlots; // relax deadline
 
-                // Min gap check (explicit days between games)
-                const minGap = constraints.minGapDays || 0;
-                if (minGap > 0) {
-                  if (homeLastDate && daysBetween(homeLastDate, slot.date) < minGap) continue;
-                  if (awayLastDate && daysBetween(awayLastDate, slot.date) < minGap) continue;
-                } else if (constraints.noBackToBack) {
-                  // Legacy back-to-back check
-                  const slotDate = new Date(slot.date + "T12:00:00");
-                  const before = new Date(slotDate); before.setDate(slotDate.getDate() - 1);
-                  const after = new Date(slotDate); after.setDate(slotDate.getDate() + 1);
-                  const bs = before.toISOString().split("T")[0], as_ = after.toISOString().split("T")[0];
-                  if (dd.teamGameDates[home.id].includes(bs) || dd.teamGameDates[home.id].includes(as_)) continue;
-                  if (dd.teamGameDates[away.id].includes(bs) || dd.teamGameDates[away.id].includes(as_)) continue;
-                }
+            if (homeNeedsLate || awayNeedsLate) {
+              candidates = [...candidates.filter(s => isLateTime(s.start_time, lateGameHour)), ...candidates.filter(s => !isLateTime(s.start_time, lateGameHour))];
+            } else if (preferNonLate) {
+              candidates = [...candidates.filter(s => !isLateTime(s.start_time, lateGameHour)), ...candidates.filter(s => isLateTime(s.start_time, lateGameHour))];
+            }
 
-                // Assign
-                globalUsedSlots.add(slot.id);
-                dd.teamGameDates[home.id].push(slot.date);
-                dd.teamGameDates[away.id].push(slot.date);
-                dd.teamGameCount[home.id]++;
-                dd.teamGameCount[away.id]++;
-                const late = isLateTime(slot.start_time);
-                if (late) { dd.teamLateCounts[home.id]++; dd.teamLateCounts[away.id]++; }
-
-                scheduledGames.push({
-                  season, division_id: divId, division_name: dd.division?.name,
-                  home_team_id: home.id, home_team_name: home.name,
-                  away_team_id: away.id, away_team_name: away.name,
-                  arena_id: slot.arena_id, arena_name: slot.arena_name,
-                  date: slot.date, start_time: slot.start_time, end_time: slot.end_time,
-                  is_late_game: late, game_type: "regular", status: "scheduled", ice_slot_id: slot.id,
-                });
-
-                assigned = true;
-                scheduledThisRound++;
-                anyProgress = true;
-                break;
+            let assigned = false;
+            for (const slot of candidates) {
+              if (globalUsedSlots.has(slot.id)) continue;
+              if (leagueBlackoutDates.has(slot.date)) continue;
+              if (isTeamBlackedOut(home.id, slot.date) || isTeamBlackedOut(away.id, slot.date)) continue;
+              if (constraints.noSameDay && (dd.teamGameDates[home.id].has(slot.date) || dd.teamGameDates[away.id].has(slot.date))) continue;
+              if (minGap > 0) {
+                if (homeLastDate && daysBetween(homeLastDate, slot.date) < minGap) continue;
+                if (awayLastDate && daysBetween(awayLastDate, slot.date) < minGap) continue;
               }
 
-              if (!assigned) {
-                dd.unscheduled++;
-                break; // Can't schedule this matchup, move to next div
-              }
+              // Assign
+              globalUsedSlots.add(slot.id);
+              dd.teamGameDates[home.id].add(slot.date);
+              dd.teamGameDates[away.id].add(slot.date);
+              dd.teamGameCount[home.id]++;
+              dd.teamGameCount[away.id]++;
+              const late = isLateTime(slot.start_time, lateGameHour);
+              if (late) { dd.teamLateCounts[home.id]++; dd.teamLateCounts[away.id]++; }
+
+              scheduledGames.push({
+                season, division_id: divId, division_name: dd.division?.name,
+                home_team_id: home.id, home_team_name: home.name,
+                away_team_id: away.id, away_team_name: away.name,
+                arena_id: slot.arena_id, arena_name: slot.arena_name,
+                date: slot.date, start_time: slot.start_time, end_time: slot.end_time,
+                is_late_game: late, game_type: "regular", status: "scheduled", ice_slot_id: slot.id,
+              });
+
+              assigned = true;
+              consecutiveFails = 0;
+              break;
+            }
+
+            if (!assigned) {
+              // Put matchup back at end of queue to try later with a different slot
+              dd.matchupQueue.push([home, away]);
+              consecutiveFails++;
             }
           }
         }
 
-        // Collect warnings
+        // ── Warnings ──────────────────────────────────────────────────────────
         const allWarns = [];
         for (const divId of activeDivIds) {
           const dd = divDataMap[divId];
           if (!dd) continue;
 
-          if (dd.unscheduled > 0)
-            allWarns.push(`${dd.division?.name}: ${dd.unscheduled} matchup(s) could not be scheduled — constraints too tight or insufficient slots.`);
-
-          // Game count per team
           dd.divTeams.forEach(t => {
             const c = dd.teamGameCount[t.id];
-            if (c > dd.targetGames)
-              allWarns.push(`${t.name}: ${c} games scheduled (over target ${dd.targetGames}) — this should not happen.`);
-            else if (c < dd.targetGames - 1)
-              allWarns.push(`${t.name}: only ${c} of ${dd.targetGames} games scheduled — not enough valid slots.`);
+            if (c < dd.targetGames)
+              allWarns.push(`${t.name}: scheduled ${c}/${dd.targetGames} games — add more ice slots or loosen constraints.`);
           });
 
-          // Late game balance (warn if spread > 3)
-          const lateCounts = dd.divTeams.map(t => ({ name: t.name, count: dd.teamLateCounts[t.id] }));
-          const maxLate = Math.max(...lateCounts.map(x => x.count));
-          const minLate = Math.min(...lateCounts.map(x => x.count));
-          if (maxLate - minLate > 3)
-            allWarns.push(`${dd.division?.name}: Late games not fully balanced — spread of ${maxLate - minLate} (${minLate}–${maxLate}). More late slots may help.`);
+          // Late balance (warn if spread > 2)
+          const lateCounts = dd.divTeams.map(t => dd.teamLateCounts[t.id]);
+          const maxLate = Math.max(...lateCounts), minLate = Math.min(...lateCounts);
+          if (maxLate - minLate > 2)
+            allWarns.push(`${dd.division?.name}: Late game spread of ${maxLate - minLate} (${minLate}–${maxLate}) — consider adding more late slots.`);
 
           // Gap violations
           if (constraints.maxDaysBetweenGames > 0) {
@@ -340,8 +303,8 @@ export default function ScheduleBuilder() {
               const dates = [...dd.teamGameDates[team.id]].sort();
               for (let i = 1; i < dates.length; i++) {
                 const gap = daysBetween(dates[i - 1], dates[i]);
-                if (gap > constraints.maxDaysBetweenGames)
-                  allWarns.push(`${team.name}: ${Math.round(gap)}-day gap between ${dates[i-1]} and ${dates[i]} (max ${constraints.maxDaysBetweenGames}).`);
+                if (gap > constraints.maxDaysBetweenGames + 2) // +2 tolerance before warning
+                  allWarns.push(`${team.name}: ${Math.round(gap)}-day gap between ${dates[i-1]} and ${dates[i]}.`);
               }
             });
           }
@@ -350,7 +313,19 @@ export default function ScheduleBuilder() {
         setPreview(scheduledGames);
         setWarnings([...new Set(allWarns)]);
         const lateGames = scheduledGames.filter(g => g.is_late_game);
-        setStats({ total: scheduledGames.length, lateGames: lateGames.length, divCount: activeDivIds.length });
+        setStats({
+          total: scheduledGames.length,
+          lateGames: lateGames.length,
+          divCount: activeDivIds.length,
+          perDiv: activeDivIds.map(id => {
+            const dd = divDataMap[id];
+            return {
+              name: dd.division?.name,
+              scheduled: scheduledGames.filter(g => g.division_id === id).length,
+              target: Math.ceil(dd.targetGames * dd.divTeams.length / 2),
+            };
+          }),
+        });
         setResult({ success: true, count: scheduledGames.length });
       } catch (e) {
         setResult({ error: e.message });
