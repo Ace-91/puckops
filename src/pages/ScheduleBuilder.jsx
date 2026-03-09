@@ -626,20 +626,33 @@ export default function ScheduleBuilder() {
               <CheckCircle className="w-5 h-5 text-green-400" />
               <span className="text-green-400 font-medium">{result.count} games generated — review then save</span>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3 mb-3">
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold text-white">{stats.total}</div>
                 <div className="text-xs text-gray-400">Total Games</div>
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold text-yellow-400 flex items-center justify-center gap-1"><Moon className="w-4 h-4" />{stats.lateGames}</div>
-                <div className="text-xs text-gray-400">Late (10pm+)</div>
+                <div className="text-xs text-gray-400">Late ({lateGameHour}:00+)</div>
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{stats.divCount}</div>
                 <div className="text-xs text-gray-400">Divisions</div>
               </div>
             </div>
+            {stats.perDiv && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {stats.perDiv.map(d => (
+                  <div key={d.name} className="rounded-lg px-3 py-2 border text-xs flex justify-between items-center"
+                    style={{ background: "#0d0d0d", borderColor: d.scheduled >= d.target ? "#22c55e30" : "#ef444430" }}>
+                    <span className="text-gray-300 font-medium">{d.name}</span>
+                    <span className={d.scheduled >= d.target ? "text-green-400" : "text-red-400"}>
+                      {d.scheduled}/{d.target}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
