@@ -365,27 +365,24 @@ export default function ScheduleBuilder() {
     const totalSteps = preview.length + slotIds.length;
     setSaveProgress({ current: 0, total: totalSteps, phase: "Saving games" });
 
-    // Bulk create games in chunks of 50 with 500ms delay
+    // Bulk create games in chunks of 20 with delays
     let created = 0;
-    const GAME_CHUNK = 50;
+    const GAME_CHUNK = 20;
     for (let i = 0; i < preview.length; i += GAME_CHUNK) {
       const chunk = preview.slice(i, i + GAME_CHUNK);
       await base44.entities.Game.bulkCreate(chunk);
       created += chunk.length;
       setSaveProgress({ current: created, total: totalSteps, phase: "Saving games" });
-      if (i + GAME_CHUNK < preview.length) await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 600));
     }
 
-    // Update ice slots availability in batches
-    setSaveProgress({ current: preview.length, total: totalSteps, phase: "Updating ice slots" });
-    const SLOT_CHUNK = 10;
+    // Update ice slots one-by-one to avoid rate limits
     let slotsDone = 0;
-    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
-      const chunk = slotIds.slice(i, i + SLOT_CHUNK);
-      await Promise.all(chunk.map(id => base44.entities.IceSlot.update(id, { is_available: false })));
-      slotsDone += chunk.length;
+    for (const id of slotIds) {
+      await base44.entities.IceSlot.update(id, { is_available: false });
+      slotsDone++;
       setSaveProgress({ current: preview.length + slotsDone, total: totalSteps, phase: "Updating ice slots" });
-      if (i + SLOT_CHUNK < slotIds.length) await new Promise(r => setTimeout(r, 400));
+      await new Promise(r => setTimeout(r, 250));
     }
 
     setSaveProgress(null);
