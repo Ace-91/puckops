@@ -248,22 +248,23 @@ export default function IceSlots() {
     cancelRef.current = false;
     setProgress({ title: "Deleting Ice Slots", current: 0, total: ids.length });
 
-    for (let i = 0; i < ids.length; i += 5) {
+    for (let i = 0; i < ids.length; i++) {
       if (cancelRef.current) break;
-      const chunk = ids.slice(i, i + 5);
-      await Promise.all(chunk.map(async (id) => {
-        const slot = slots.find(s => s.id === id);
-        if (slot) {
-          const linked = games.filter(g =>
-            g.ice_slot_id === slot.id ||
-            (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
-          );
-          await Promise.all(linked.map(g => base44.entities.Game.update(g.id, { ice_slot_id: "" })));
+      const id = ids[i];
+      const slot = slots.find(s => s.id === id);
+      if (slot) {
+        const linked = games.filter(g =>
+          g.ice_slot_id === slot.id ||
+          (g.arena_id === slot.arena_id && g.date === slot.date && g.start_time === slot.start_time)
+        );
+        for (const g of linked) {
+          await base44.entities.Game.update(g.id, { ice_slot_id: "" });
+          await new Promise(r => setTimeout(r, 150));
         }
-        await base44.entities.IceSlot.delete(id);
-      }));
-      setProgress({ title: "Deleting Ice Slots", current: Math.min(i + 5, ids.length), total: ids.length });
-      if (i + 5 < ids.length) await new Promise(r => setTimeout(r, 150));
+      }
+      await base44.entities.IceSlot.delete(id);
+      setProgress({ title: "Deleting Ice Slots", current: i + 1, total: ids.length });
+      await new Promise(r => setTimeout(r, 200));
     }
     setProgress(null);
     await loadAll();
