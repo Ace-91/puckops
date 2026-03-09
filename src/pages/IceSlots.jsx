@@ -293,12 +293,12 @@ export default function IceSlots() {
         );
         for (const g of linked) {
           await base44.entities.Game.update(g.id, { ice_slot_id: "", arena_id: "", arena_name: "" });
-          await new Promise(r => setTimeout(r, 150));
+          await new Promise(r => setTimeout(r, 400));
         }
       }
       await base44.entities.IceSlot.update(slotId, { is_available: true });
       setProgress({ title: "Unassigning Ice Slots", current: i + 1, total: usedSelected.length });
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 400));
     }
     setProgress(null);
     await loadAll();
