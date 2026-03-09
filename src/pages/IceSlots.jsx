@@ -259,12 +259,12 @@ export default function IceSlots() {
         );
         for (const g of linked) {
           await base44.entities.Game.update(g.id, { ice_slot_id: "" });
-          await new Promise(r => setTimeout(r, 150));
+          await new Promise(r => setTimeout(r, 400));
         }
       }
       await base44.entities.IceSlot.delete(id);
       setProgress({ title: "Deleting Ice Slots", current: i + 1, total: ids.length });
-      await new Promise(r => setTimeout(r, 200));
+      await new Promise(r => setTimeout(r, 400));
     }
     setProgress(null);
     await loadAll();
