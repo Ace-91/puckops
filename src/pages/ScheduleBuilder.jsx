@@ -529,6 +529,19 @@ export default function ScheduleBuilder() {
                   </div>
                 </div>
               </div>
+              <div className="pt-1">
+                <label className="text-sm text-gray-400 block mb-1 flex items-center gap-1">
+                  <Moon className="w-3.5 h-3.5 text-yellow-400" /> Late game starts at or after
+                </label>
+                <div className="flex items-center gap-2">
+                  <select className="bg-black border border-gray-800 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none"
+                    value={lateGameHour} onChange={e => setLateGameHour(parseInt(e.target.value))}>
+                    {[19,20,21,22,23].map(h => (
+                      <option key={h} value={h}>{h}:00 ({h > 12 ? `${h-12}pm` : `${h}am`})</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
 
