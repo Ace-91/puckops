@@ -241,7 +241,7 @@ export default function ScheduleBuilder() {
           if (usedSlotIds.has(slot.id)) continue;
           if (leagueBlackoutDates.has(slot.date)) continue;
 
-          const isLate = isLateTime(slot.start_time, lateGameHour);
+          const isLate = isLateTime(slot.start_time, lateGameHour, lateGameMinute);
 
           // Try divisions ordered by urgency: most pending matchups first
           // This prevents any one division from starving when slots are scarce
