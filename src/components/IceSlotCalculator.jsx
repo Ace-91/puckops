@@ -98,7 +98,9 @@ export default function IceSlotCalculator({ slots, divisions = [], teams = [] })
           </tbody>
           <tfoot>
             <tr className="border-t border-gray-700">
-              <td colSpan={3} className="pt-2 pr-3 text-sm font-semibold text-white">Total</td>
+              <td className="pt-2 pr-3 text-sm font-semibold text-white">Totals</td>
+              <td className="pt-2 px-2 text-center font-bold text-sm text-white">{rows.reduce((s, r) => s + (Number(r.teams) || 0), 0)}</td>
+              <td className="pt-2 px-2 text-center font-bold text-sm text-white">{rows.reduce((s, r) => s + (Number(r.games) || 0), 0)}</td>
               <td className="pt-2 px-2 text-center font-bold text-lg" style={{ color: "#d4af37" }}>{totalNeeded}</td>
               <td></td>
             </tr>

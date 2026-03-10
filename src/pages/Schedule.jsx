@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Calendar, Moon, ChevronLeft, ChevronRight, Search, Download, Pencil, Check, X, Filter, Trash2, CheckSquare, Square, MapPin, Clock, Users, AlertTriangle } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
-import { batchDelete } from "@/components/batchOps";
+import { batchDelete, batchUpdate } from "@/components/batchOps";
 
 const STATUS_OPTIONS = ["scheduled", "completed", "forfeited", "postponed", "replacement_needed"];
 
@@ -42,7 +42,7 @@ export default function Schedule() {
   const load = async () => {
     setLoading(true);
     const [g, d] = await Promise.all([
-      base44.entities.Game.list("date", 2000),
+      base44.entities.Game.list("date", 5000),
       base44.entities.Division.list(),
     ]);
     setGames(g);

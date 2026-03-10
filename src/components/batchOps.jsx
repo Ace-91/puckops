@@ -25,7 +25,7 @@ export async function batchProcess(items, fn, onProgress = () => {}, cancelRef =
  * Batch delete — deletes items in groups, safe for large sets.
  */
 export async function batchDelete(ids, deleteFn, onProgress = () => {}, cancelRef = null) {
-  await batchProcess(ids, id => deleteFn(id), onProgress, cancelRef, 3, 1000);
+  await batchProcess(ids, id => deleteFn(id), onProgress, cancelRef, 5, 600);
 }
 
 /**
