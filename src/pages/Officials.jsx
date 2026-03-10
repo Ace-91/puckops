@@ -196,6 +196,13 @@ export default function Officials() {
         </div>
       </div>
 
+      {importMsg && (
+        <div className="mb-4 rounded-lg px-4 py-3 border border-green-500/20 bg-green-500/5 text-green-400 text-sm flex items-center justify-between">
+          <span>{importMsg}</span>
+          <button onClick={() => setImportMsg(null)}><X className="w-4 h-4" /></button>
+        </div>
+      )}
+
       {pendingCount > 0 && (
         <div className="mb-4 rounded-xl border p-4 flex items-center justify-between" style={{ background: "#1a1000", borderColor: "#d4af3740" }}>
           <div className="flex items-center gap-2">
