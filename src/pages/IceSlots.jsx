@@ -123,15 +123,10 @@ export default function IceSlots() {
       });
     }
 
-    // Step 1: delete all existing slots — large parallel batches, no per-record delay
-    const existingSlots = await base44.entities.IceSlot.list("date", 9999);
-    const total = existingSlots.length + toCreate.length;
-    setCsvProgress({ current: 0, total, phase: "Deleting old slots" });
-    const DELETE_BATCH = 50;
-    for (let i = 0; i < existingSlots.length; i += DELETE_BATCH) {
-      await Promise.all(existingSlots.slice(i, i + DELETE_BATCH).map(s => base44.entities.IceSlot.delete(s.id)));
-      setCsvProgress({ current: Math.min(i + DELETE_BATCH, existingSlots.length), total, phase: "Deleting old slots" });
-    }
+    // Step 1: delete all existing slots server-side (fast bulk delete)
+    setCsvProgress({ current: 0, total: toCreate.length + 1, phase: "Deleting old slots" });
+    await base44.functions.invoke('clearScheduleData', { target: 'slots' });
+    setCsvProgress({ current: 1, total: toCreate.length + 1, phase: "Deleting old slots" });
 
     // Step 2: bulk-create new slots — large chunks, minimal delay
     const BULK_SIZE = 100;
@@ -139,7 +134,7 @@ export default function IceSlots() {
     for (let i = 0; i < toCreate.length; i += BULK_SIZE) {
       await base44.entities.IceSlot.bulkCreate(toCreate.slice(i, i + BULK_SIZE));
       created += Math.min(BULK_SIZE, toCreate.length - i);
-      setCsvProgress({ current: existingSlots.length + created, total, phase: "Importing slots" });
+      setCsvProgress({ current: 1 + created, total: toCreate.length + 1, phase: "Importing slots" });
       await new Promise(r => setTimeout(r, 300));
     }
 
