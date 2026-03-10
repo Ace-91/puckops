@@ -37,6 +37,8 @@ export default function IceSlotCalculator({ slots, divisions = [], teams = [] })
   };
 
   const totalNeeded = rows.reduce((sum, r) => sum + Math.ceil((r.teams * r.games) / 2), 0);
+  const totalTeams = rows.reduce((sum, r) => sum + (r.teams || 0), 0);
+  const avgGames = rows.length > 0 ? Math.round(rows.reduce((sum, r) => sum + r.games, 0) / rows.length) : 0;
   const diff = availableCount - totalNeeded;
 
   const inputCls = "bg-black border border-gray-800 rounded px-2 py-1 text-white text-sm focus:outline-none focus:border-yellow-500 w-full";
@@ -98,9 +100,9 @@ export default function IceSlotCalculator({ slots, divisions = [], teams = [] })
           </tbody>
           <tfoot>
             <tr className="border-t border-gray-700">
-              <td className="pt-2 pr-3 text-sm font-semibold text-white">Totals</td>
-              <td className="pt-2 px-2 text-center font-bold text-sm text-white">{rows.reduce((s, r) => s + (Number(r.teams) || 0), 0)}</td>
-              <td className="pt-2 px-2 text-center font-bold text-sm text-white">{rows.reduce((s, r) => s + (Number(r.games) || 0), 0)}</td>
+              <td className="pt-2 pr-3 text-sm font-semibold text-white">Total</td>
+              <td className="pt-2 px-2 text-center font-bold" style={{ color: "#c0c0c0" }}>{totalTeams}</td>
+              <td className="pt-2 px-2 text-center text-gray-500 text-xs">avg {avgGames}</td>
               <td className="pt-2 px-2 text-center font-bold text-lg" style={{ color: "#d4af37" }}>{totalNeeded}</td>
               <td></td>
             </tr>
