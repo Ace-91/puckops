@@ -51,11 +51,12 @@ export default function ScheduleBuilder() {
   const [showBlackoutForm, setShowBlackoutForm] = useState(false);
 
   const [lateGameHour, setLateGameHour] = useState(22);
+  const [lateGameMinute, setLateGameMinute] = useState(0);
 
   const [constraints, setConstraints] = useState({
     noSameDay: true,
     minGapDays: 2,
-    maxDaysBetweenGames: 10,
+    maxDaysBetweenGames: 15,
     respectLeagueBlackouts: true,
     respectTeamBlackouts: true,
   });
@@ -169,9 +170,14 @@ export default function ScheduleBuilder() {
         const isTeamBlackedOut = (tid, date) =>
           (teamBlackoutsMap[tid] || []).some(b => date >= b.date_from && date <= (b.date_to || b.date_from));
 
-        // Late ratio across slot pool
+        // Late ratio across slot pool (using lateGameHour:lateGameMinute threshold)
+        const isLateCustom = (t) => {
+          if (!t) return false;
+          const [h, m] = t.split(":").map(Number);
+          return h > lateGameHour || (h === lateGameHour && m >= lateGameMinute);
+        };
         const lateRatio = poolSlots.length > 0
-          ? poolSlots.filter(s => isLateTime(s.start_time, lateGameHour)).length / poolSlots.length
+          ? poolSlots.filter(s => isLateCustom(s.start_time)).length / poolSlots.length
           : 0;
 
         // ── Step 1: Build matchup lists per division ──────────────────────────
@@ -249,7 +255,7 @@ export default function ScheduleBuilder() {
           if (usedSlotIds.has(slot.id)) continue;
           if (leagueBlackoutDates.has(slot.date)) continue;
 
-          const isLate = isLateTime(slot.start_time, lateGameHour);
+          const isLate = isLateCustom(slot.start_time);
 
           // Try divisions ordered by urgency: most pending matchups first
           // This prevents any one division from starving when slots are scarce
