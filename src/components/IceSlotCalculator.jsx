@@ -101,8 +101,11 @@ export default function IceSlotCalculator({ slots, divisions = [], teams = [] })
           <tfoot>
             <tr className="border-t border-gray-700">
               <td className="pt-2 pr-3 text-sm font-semibold text-white">Total</td>
-              <td className="pt-2 px-2 text-center font-bold" style={{ color: "#c0c0c0" }}>{totalTeams}</td>
-              <td className="pt-2 px-2 text-center text-gray-500 text-xs">avg {avgGames}</td>
+              <td className="pt-2 px-2 text-center font-bold text-lg" style={{ color: "#c0c0c0" }}>{totalTeams}</td>
+              <td className="pt-2 px-2 text-center font-bold text-lg" style={{ color: "#c0c0c0" }}>
+                {avgGames}
+                <div className="text-gray-600 text-xs font-normal">avg</div>
+              </td>
               <td className="pt-2 px-2 text-center font-bold text-lg" style={{ color: "#d4af37" }}>{totalNeeded}</td>
               <td></td>
             </tr>

@@ -9,7 +9,7 @@
  * @param {number}   concurrency - Items per batch (default 8)
  * @param {number}   batchDelay  - ms between batches (default 600)
  */
-export async function batchProcess(items, fn, onProgress = () => {}, cancelRef = null, concurrency = 4, batchDelay = 1000) {
+export async function batchProcess(items, fn, onProgress = () => {}, cancelRef = null, concurrency = 20, batchDelay = 200) {
   let completed = 0;
   for (let i = 0; i < items.length; i += concurrency) {
     if (cancelRef?.current) break;
@@ -25,7 +25,7 @@ export async function batchProcess(items, fn, onProgress = () => {}, cancelRef =
  * Batch delete — deletes items in groups, safe for large sets.
  */
 export async function batchDelete(ids, deleteFn, onProgress = () => {}, cancelRef = null) {
-  await batchProcess(ids, id => deleteFn(id), onProgress, cancelRef, 5, 600);
+  await batchProcess(ids, id => deleteFn(id), onProgress, cancelRef, 20, 200);
 }
 
 /**
@@ -33,7 +33,7 @@ export async function batchDelete(ids, deleteFn, onProgress = () => {}, cancelRe
  * Each item should be { id, ...data } or whatever updateFn expects.
  */
 export async function batchUpdate(items, updateFn, onProgress = () => {}, cancelRef = null) {
-  await batchProcess(items, item => updateFn(item), onProgress, cancelRef, 8, 600);
+  await batchProcess(items, item => updateFn(item), onProgress, cancelRef, 20, 200);
 }
 
 /**

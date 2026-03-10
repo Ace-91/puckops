@@ -267,19 +267,33 @@ export default function ScheduleBuilder() {
             const dd = divDataMap[divId];
             if (dd.pendingMatchups.length === 0) continue;
 
-            // Find first valid matchup from this division for this slot
-            // Two-pass: prefer late-hungry matchups for late slots (soft preference)
+            // Find first valid matchup from this division for this slot.
+            // Sort by urgency: teams that haven't played recently get priority first.
+            // For late slots, tiebreak by late-game need.
             let foundIdx = -1;
 
-            const scanOrder = isLate
-              ? [...dd.pendingMatchups.keys()].sort((i, j) => {
-                  const [ai, bi] = dd.pendingMatchups[i];
-                  const [aj, bj] = dd.pendingMatchups[j];
-                  const needsI = (dd.teamLateCounts[ai.id] < dd.targetLatePerTeam ? 1 : 0) + (dd.teamLateCounts[bi.id] < dd.targetLatePerTeam ? 1 : 0);
-                  const needsJ = (dd.teamLateCounts[aj.id] < dd.targetLatePerTeam ? 1 : 0) + (dd.teamLateCounts[bj.id] < dd.targetLatePerTeam ? 1 : 0);
-                  return needsJ - needsI; // higher need first
-                })
-              : dd.pendingMatchups.map((_, i) => i); // chronological order for non-late
+            const scanOrder = [...dd.pendingMatchups.keys()].sort((i, j) => {
+              const [ai, bi] = dd.pendingMatchups[i];
+              const [aj, bj] = dd.pendingMatchups[j];
+
+              // Urgency = max days since last game for either team (999 = never played yet)
+              const urgencyOf = (ta, tb) => Math.max(
+                dd.teamLastDate[ta.id] ? daysBetween(dd.teamLastDate[ta.id], slot.date) : 999,
+                dd.teamLastDate[tb.id] ? daysBetween(dd.teamLastDate[tb.id], slot.date) : 999
+              );
+              const uI = urgencyOf(ai, bi);
+              const uJ = urgencyOf(aj, bj);
+
+              if (Math.abs(uI - uJ) > 1) return uJ - uI; // most overdue first
+
+              // Tiebreak for late slots: prefer matchups where teams still need late games
+              if (isLate) {
+                const needsI = (dd.teamLateCounts[ai.id] < dd.targetLatePerTeam ? 1 : 0) + (dd.teamLateCounts[bi.id] < dd.targetLatePerTeam ? 1 : 0);
+                const needsJ = (dd.teamLateCounts[aj.id] < dd.targetLatePerTeam ? 1 : 0) + (dd.teamLateCounts[bj.id] < dd.targetLatePerTeam ? 1 : 0);
+                return needsJ - needsI;
+              }
+              return 0;
+            });
 
             for (const mi of scanOrder) {
               const [home, away] = dd.pendingMatchups[mi];
@@ -293,17 +307,6 @@ export default function ScheduleBuilder() {
                 const aLast = dd.teamLastDate[away.id];
                 if (hLast && daysBetween(hLast, slot.date) < minGap) continue;
                 if (aLast && daysBetween(aLast, slot.date) < minGap) continue;
-              }
-
-              // Max days constraint: if both teams have a last game date and gap is too large, skip
-              // (soft: only enforced once a team has played at least 1 game)
-              const maxGap = constraints.maxDaysBetweenGames;
-              if (maxGap > 0) {
-                const hLast = dd.teamLastDate[home.id];
-                const aLast = dd.teamLastDate[away.id];
-                // If a team's last game was > maxGap days ago, deprioritize (don't block entirely)
-                // We enforce it as a hard skip only when there are still future slots that could satisfy it
-                // This keeps the algorithm from getting stuck
               }
 
               foundIdx = mi;
@@ -711,7 +714,7 @@ export default function ScheduleBuilder() {
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold text-yellow-400 flex items-center justify-center gap-1"><Moon className="w-4 h-4" />{stats.lateGames}</div>
-                <div className="text-xs text-gray-400">Late ({lateGameHour}:00+)</div>
+                <div className="text-xs text-gray-400">Late ({lateGameHour}:{String(lateGameMinute).padStart(2,"0")}+)</div>
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{stats.divCount}</div>
