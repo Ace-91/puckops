@@ -89,7 +89,7 @@ export default function Layout({ children, currentPageName }) {
             <Link to={createPageUrl("Home")} className="flex items-center gap-2.5">
               <HockeyOpsLogo size={36} />
               <div className="hidden sm:block">
-                <span className="font-bold text-lg" style={{ color: SILVER }}>Hockey</span>
+                <span className="font-bold text-lg" style={{ color: SILVER }}>Puck</span>
                 <span className="font-bold text-lg" style={{ color: GOLD }}>Ops</span>
               </div>
             </Link>
@@ -200,7 +200,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       <footer className="py-4 text-center text-xs border-t" style={{ background: "#0a0a0a", borderColor: "#1a1a1a", color: "#555" }}>
-        <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
+        <span style={{ color: SILVER }}>Puck</span><span style={{ color: GOLD }}>Ops</span>
         <span className="ml-2">© 2026 — League Management Platform</span>
       </footer>
     </div>
