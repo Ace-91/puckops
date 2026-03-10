@@ -159,9 +159,11 @@ export default function ScheduleBuilder() {
         const isTeamBlackedOut = (tid, date) =>
           (teamBlackoutsMap[tid] || []).some(b => date >= b.date_from && date <= (b.date_to || b.date_from));
 
+        const { hour: lateGameHour, minute: lateGameMinute } = lateGameThreshold;
+
         // Late ratio across slot pool
         const lateRatio = poolSlots.length > 0
-          ? poolSlots.filter(s => isLateTime(s.start_time, lateGameHour)).length / poolSlots.length
+          ? poolSlots.filter(s => isLateTime(s.start_time, lateGameHour, lateGameMinute)).length / poolSlots.length
           : 0;
 
         // ── Step 1: Build matchup lists per division ──────────────────────────
