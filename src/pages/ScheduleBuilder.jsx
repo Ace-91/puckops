@@ -281,6 +281,28 @@ export default function ScheduleBuilder() {
                 if (aLast && daysBetween(aLast, slot.date) < minGap) continue;
               }
 
+              // Max gap enforcement: skip if BOTH teams already played recently enough
+              // that assigning here would not violate the "game every 7-15 days" goal
+              // (only skip if another team without a recent game is still pending)
+              if (constraints.maxDaysBetweenGames > 0) {
+                const hLast = dd.teamLastDate[home.id];
+                const aLast = dd.teamLastDate[away.id];
+                // Find if there's a more urgent matchup (team hasn't played in > maxDays)
+                const urgentExists = dd.pendingMatchups.some(([a, b], idx) => {
+                  if (idx === foundIdx) return false; // same one we're checking
+                  const aLastD = dd.teamLastDate[a.id];
+                  const bLastD = dd.teamLastDate[b.id];
+                  return (aLastD && daysBetween(aLastD, slot.date) > constraints.maxDaysBetweenGames) ||
+                         (bLastD && daysBetween(bLastD, slot.date) > constraints.maxDaysBetweenGames);
+                });
+                // If a more urgent matchup exists and current teams are still "fresh", defer
+                if (urgentExists) {
+                  const hFresh = !hLast || daysBetween(hLast, slot.date) <= constraints.maxDaysBetweenGames;
+                  const aFresh = !aLast || daysBetween(aLast, slot.date) <= constraints.maxDaysBetweenGames;
+                  if (hFresh && aFresh) continue;
+                }
+              }
+
               foundIdx = mi;
               break;
             }
