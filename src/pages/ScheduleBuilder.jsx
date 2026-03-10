@@ -3,10 +3,20 @@ import { base44 } from "@/api/base44Client";
 import { Shuffle, AlertCircle, CheckCircle, Moon, Eye, Trash2, Loader2, AlertTriangle, ChevronDown, Plus, X, Calendar } from "lucide-react";
 import { batchDelete, batchUpdate } from "@/components/batchOps";
 
-const isLateTime = (t, lateHour = 22, lateMinute = 0) => {
+// Late = at or after lateHour:00 (e.g. 22:00, 22:30, 23:00 all qualify when lateHour=22)
+const isLateTime = (t, lateHour = 22) => {
   if (!t) return false;
+  const [h] = t.split(":").map(Number);
+  return h >= lateHour;
+};
+
+// Format a time string for display: "22:30" → "10:30pm"
+const formatLateLabel = (t) => {
+  if (!t) return t;
   const [h, m] = t.split(":").map(Number);
-  return h * 60 + m >= lateHour * 60 + lateMinute;
+  const suffix = h >= 12 ? "pm" : "am";
+  const h12 = h % 12 || 12;
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2,"0")}${suffix}`;
 };
 
 const daysBetween = (d1, d2) => Math.abs(new Date(d1) - new Date(d2)) / (1000 * 60 * 60 * 24);
@@ -40,7 +50,7 @@ export default function ScheduleBuilder() {
   const [newBlackout, setNewBlackout] = useState({ date_from: "", date_to: "", reason: "" });
   const [showBlackoutForm, setShowBlackoutForm] = useState(false);
 
-  const [lateGameThreshold, setLateGameThreshold] = useState({ hour: 22, minute: 0 });
+  const [lateGameHour, setLateGameHour] = useState(22);
 
   const [constraints, setConstraints] = useState({
     noSameDay: true,
@@ -159,11 +169,9 @@ export default function ScheduleBuilder() {
         const isTeamBlackedOut = (tid, date) =>
           (teamBlackoutsMap[tid] || []).some(b => date >= b.date_from && date <= (b.date_to || b.date_from));
 
-        const { hour: lateGameHour, minute: lateGameMinute } = lateGameThreshold;
-
         // Late ratio across slot pool
         const lateRatio = poolSlots.length > 0
-          ? poolSlots.filter(s => isLateTime(s.start_time, lateGameHour, lateGameMinute)).length / poolSlots.length
+          ? poolSlots.filter(s => isLateTime(s.start_time, lateGameHour)).length / poolSlots.length
           : 0;
 
         // ── Step 1: Build matchup lists per division ──────────────────────────
@@ -241,7 +249,7 @@ export default function ScheduleBuilder() {
           if (usedSlotIds.has(slot.id)) continue;
           if (leagueBlackoutDates.has(slot.date)) continue;
 
-          const isLate = isLateTime(slot.start_time, lateGameHour, lateGameMinute);
+          const isLate = isLateTime(slot.start_time, lateGameHour);
 
           // Try divisions ordered by urgency: most pending matchups first
           // This prevents any one division from starving when slots are scarce
@@ -279,28 +287,6 @@ export default function ScheduleBuilder() {
                 const aLast = dd.teamLastDate[away.id];
                 if (hLast && daysBetween(hLast, slot.date) < minGap) continue;
                 if (aLast && daysBetween(aLast, slot.date) < minGap) continue;
-              }
-
-              // Max gap enforcement: skip if BOTH teams already played recently enough
-              // that assigning here would not violate the "game every 7-15 days" goal
-              // (only skip if another team without a recent game is still pending)
-              if (constraints.maxDaysBetweenGames > 0) {
-                const hLast = dd.teamLastDate[home.id];
-                const aLast = dd.teamLastDate[away.id];
-                // Find if there's a more urgent matchup (team hasn't played in > maxDays)
-                const urgentExists = dd.pendingMatchups.some(([a, b], idx) => {
-                  if (idx === foundIdx) return false; // same one we're checking
-                  const aLastD = dd.teamLastDate[a.id];
-                  const bLastD = dd.teamLastDate[b.id];
-                  return (aLastD && daysBetween(aLastD, slot.date) > constraints.maxDaysBetweenGames) ||
-                         (bLastD && daysBetween(bLastD, slot.date) > constraints.maxDaysBetweenGames);
-                });
-                // If a more urgent matchup exists and current teams are still "fresh", defer
-                if (urgentExists) {
-                  const hFresh = !hLast || daysBetween(hLast, slot.date) <= constraints.maxDaysBetweenGames;
-                  const aFresh = !aLast || daysBetween(aLast, slot.date) <= constraints.maxDaysBetweenGames;
-                  if (hFresh && aFresh) continue;
-                }
               }
 
               foundIdx = mi;
@@ -354,9 +340,8 @@ export default function ScheduleBuilder() {
           const lateCounts = dd.divTeams.map(t => dd.teamLateCounts[t.id]);
           if (lateCounts.length > 0) {
             const maxLate = Math.max(...lateCounts), minLate = Math.min(...lateCounts);
-            const lateLabel = `${lateGameThreshold.hour}:${String(lateGameThreshold.minute).padStart(2,"0")}`;
             if (maxLate - minLate > 3)
-              allWarns.push(`${dd.division?.name}: Late game spread ${minLate}–${maxLate} (${lateLabel}+) — consider adding more late slots.`);
+              allWarns.push(`${dd.division?.name}: Late game spread ${minLate}–${maxLate} — consider adding more late slots.`);
           }
         }
 
@@ -585,17 +570,10 @@ export default function ScheduleBuilder() {
                 </label>
                 <div className="flex items-center gap-2">
                   <select className="bg-black border border-gray-800 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none"
-                    value={`${lateGameThreshold.hour}:${String(lateGameThreshold.minute).padStart(2,"0")}`}
-                    onChange={e => {
-                      const [h, m] = e.target.value.split(":").map(Number);
-                      setLateGameThreshold({ hour: h, minute: m });
-                    }}>
-                    <option value="19:00">7:00 pm</option>
-                    <option value="20:00">8:00 pm</option>
-                    <option value="21:00">9:00 pm</option>
-                    <option value="22:00">10:00 pm</option>
-                    <option value="22:30">10:30 pm</option>
-                    <option value="23:00">11:00 pm</option>
+                    value={lateGameHour} onChange={e => setLateGameHour(parseInt(e.target.value))}>
+                    {[19,20,21,22,23].map(h => (
+                      <option key={h} value={h}>{h}:00 ({h > 12 ? `${h-12}pm` : `${h}am`})</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -690,7 +668,7 @@ export default function ScheduleBuilder() {
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold text-yellow-400 flex items-center justify-center gap-1"><Moon className="w-4 h-4" />{stats.lateGames}</div>
-                <div className="text-xs text-gray-400">Late ({lateGameThreshold.hour}:{String(lateGameThreshold.minute).padStart(2,"0")}+)</div>
+                <div className="text-xs text-gray-400">Late ({lateGameHour}:00+)</div>
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{stats.divCount}</div>

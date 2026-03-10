@@ -330,9 +330,14 @@ export default function Schedule() {
                           <button onClick={() => toggleSelect(game.id)} className="text-gray-500 hover:text-yellow-400 shrink-0">
                             {selectedIds.has(game.id) ? <CheckSquare className="w-4 h-4 text-yellow-400" /> : <Square className="w-4 h-4" />}
                           </button>
-                          <div className="w-16 shrink-0 text-center">
+                          <div className="w-20 shrink-0 text-center">
                             <div className="text-sm font-bold text-white">{game.start_time}</div>
-                            {game.is_late_game && <Moon className="w-3.5 h-3.5 text-yellow-400 mx-auto mt-0.5" />}
+                            {game.is_late_game && (
+                              <div className="flex items-center justify-center gap-0.5 mt-0.5">
+                                <Moon className="w-3 h-3 text-yellow-400" />
+                                <span className="text-yellow-400 text-xs">Late</span>
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-semibold text-white">
