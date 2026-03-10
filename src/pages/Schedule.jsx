@@ -118,23 +118,27 @@ export default function Schedule() {
   const deleteAllGames = async () => {
     setShowDeleteAllConfirm(false);
     cancelRef.current = false;
-    const slotIds = [...new Set(games.map(g => g.ice_slot_id).filter(Boolean))];
-    const allIds = games.map(g => g.id);
+
+    // Fetch ALL games fresh — don't rely on the loaded subset
+    setProgress({ title: "Loading all games...", current: 0, total: 1 });
+    const allGames = await base44.entities.Game.list("date", 99999);
+    const slotIds = [...new Set(allGames.map(g => g.ice_slot_id).filter(Boolean))];
+    const allIds = allGames.map(g => g.id);
     const total = allIds.length + slotIds.length;
     setProgress({ title: "Clearing Schedule", current: 0, total });
 
-    // Delete games
+    // Delete games in parallel batches
     await batchDelete(
       allIds,
       id => base44.entities.Game.delete(id),
-      (current) => setProgress({ title: "Clearing Schedule", current, total }),
+      (current) => setProgress({ title: `Deleting games (${current}/${allIds.length})`, current, total }),
       cancelRef
     );
-    // Restore ice slots
+    // Restore ice slots in parallel batches
     await batchUpdate(
       slotIds,
       id => base44.entities.IceSlot.update(id, { is_available: true }),
-      (current) => setProgress({ title: "Restoring Ice Slots", current: allIds.length + current, total }),
+      (current) => setProgress({ title: `Restoring ice slots (${current}/${slotIds.length})`, current: allIds.length + current, total }),
       cancelRef
     );
     setProgress(null);
@@ -478,11 +482,11 @@ export default function Schedule() {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">Clear Entire Schedule?</h2>
-                <p className="text-sm text-gray-400">{games.length} games will be permanently deleted</p>
+                <p className="text-sm text-gray-400">All games in the schedule will be permanently deleted</p>
               </div>
             </div>
             <div className="rounded-lg p-4 mb-5 text-sm border" style={{ background: "rgba(239,68,68,0.08)", borderColor: "rgba(239,68,68,0.2)", color: "#fca5a5" }}>
-              This will delete all {games.length} scheduled games and restore all ice slots to available. This cannot be undone.
+              This will delete ALL scheduled games and restore all ice slots to available. This cannot be undone.
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowDeleteAllConfirm(false)} className="flex-1 py-2.5 border border-gray-700 rounded-lg text-gray-400 text-sm">Cancel</button>
