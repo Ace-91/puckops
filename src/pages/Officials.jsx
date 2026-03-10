@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, X, Pencil, Trash2, Shield, Clock } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Shield, Clock, Download, Upload, Loader2 } from "lucide-react";
 
 const GOLD = "#d4af37";
 const SILVER = "#c0c0c0";
