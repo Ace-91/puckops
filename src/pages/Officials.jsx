@@ -100,6 +100,68 @@ export default function Officials() {
     }));
   };
 
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const exportCSV = () => {
+    const headers = ["full_name","user_email","phone","role","certification_level","max_games_per_week","is_active","approval_status","notes"];
+    const rows = officials.map(o => headers.map(h => {
+      const v = o[h];
+      if (typeof v === "boolean") return v ? "true" : "false";
+      return `"${String(v ?? "").replace(/"/g, '""')}"`;
+    }).join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = "officials.csv"; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    setImporting(true);
+    setImportMsg(null);
+    const text = await file.text();
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split(",").map(h => h.trim().replace(/^"|"$/g, ""));
+    const records = lines.slice(1).map(line => {
+      const vals = [];
+      let cur = "", inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === "," && !inQ) { vals.push(cur.trim()); cur = ""; }
+        else cur += ch;
+      }
+      vals.push(cur.trim());
+      const obj = {};
+      headers.forEach((h, i) => {
+        const v = vals[i]?.replace(/^"|"$/g, "") ?? "";
+        if (h === "is_active") obj[h] = v === "true";
+        else if (h === "max_games_per_week") obj[h] = parseInt(v) || 5;
+        else if (v) obj[h] = v;
+      });
+      if (!obj.role) obj.role = "referee";
+      if (!obj.approval_status) obj.approval_status = "approved";
+      if (!obj.certification_level) obj.certification_level = "level2";
+      if (obj.max_games_per_week === undefined) obj.max_games_per_week = 5;
+      if (obj.is_active === undefined) obj.is_active = true;
+      return obj;
+    }).filter(r => r.full_name);
+
+    let success = 0, failed = 0;
+    for (const r of records) {
+      try { await base44.entities.Official.create(r); success++; }
+      catch { failed++; }
+    }
+    const o = await base44.entities.Official.list();
+    setOfficials(o);
+    setImportMsg(`Imported ${success} official${success !== 1 ? "s" : ""}${failed ? `, ${failed} failed` : ""}.`);
+    setImporting(false);
+  };
+
   const pendingCount = officials.filter(o => o.approval_status === "pending").length;
   const filtered = officials.filter(o =>
     (filterRole === "all" || o.role === filterRole) &&
