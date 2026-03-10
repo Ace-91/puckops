@@ -117,27 +117,8 @@ export default function Schedule() {
 
   const deleteAllGames = async () => {
     setShowDeleteAllConfirm(false);
-    cancelRef.current = false;
-    // Fetch ALL games fresh — avoids using the display-capped local state
-    setProgress({ title: "Loading all games...", current: 0, total: 1 });
-    const allGames = await base44.entities.Game.list("date", 20000);
-    const allIds = allGames.map(g => g.id);
-    const slotIds = [...new Set(allGames.map(g => g.ice_slot_id).filter(Boolean))];
-    const total = allIds.length + slotIds.length;
-    setProgress({ title: `Clearing Schedule (${allIds.length} games)`, current: 0, total });
-
-    await batchDelete(
-      allIds,
-      id => base44.entities.Game.delete(id),
-      (current) => setProgress({ title: "Clearing Schedule", current, total }),
-      cancelRef
-    );
-    await batchUpdate(
-      slotIds,
-      id => base44.entities.IceSlot.update(id, { is_available: true }),
-      (current) => setProgress({ title: "Restoring Ice Slots", current: allIds.length + current, total }),
-      cancelRef
-    );
+    setProgress({ title: "Clearing all games...", current: 0, total: 1 });
+    const res = await base44.functions.invoke('clearScheduleData', { target: 'games' });
     setProgress(null);
     setGames([]);
     setSelectedIds(new Set());
