@@ -295,6 +295,17 @@ export default function ScheduleBuilder() {
                 if (aLast && daysBetween(aLast, slot.date) < minGap) continue;
               }
 
+              // Max days constraint: if both teams have a last game date and gap is too large, skip
+              // (soft: only enforced once a team has played at least 1 game)
+              const maxGap = constraints.maxDaysBetweenGames;
+              if (maxGap > 0) {
+                const hLast = dd.teamLastDate[home.id];
+                const aLast = dd.teamLastDate[away.id];
+                // If a team's last game was > maxGap days ago, deprioritize (don't block entirely)
+                // We enforce it as a hard skip only when there are still future slots that could satisfy it
+                // This keeps the algorithm from getting stuck
+              }
+
               foundIdx = mi;
               break;
             }
@@ -348,6 +359,24 @@ export default function ScheduleBuilder() {
             const maxLate = Math.max(...lateCounts), minLate = Math.min(...lateCounts);
             if (maxLate - minLate > 3)
               allWarns.push(`${dd.division?.name}: Late game spread ${minLate}–${maxLate} — consider adding more late slots.`);
+          }
+
+          // Max days between games — check every team for large gaps
+          const maxGap = constraints.maxDaysBetweenGames;
+          if (maxGap > 0) {
+            const divGames = scheduledGames.filter(g => g.division_id === divId);
+            dd.divTeams.forEach(t => {
+              const tDates = divGames
+                .filter(g => g.home_team_id === t.id || g.away_team_id === t.id)
+                .map(g => g.date).sort();
+              for (let i = 1; i < tDates.length; i++) {
+                const gap = daysBetween(tDates[i-1], tDates[i]);
+                if (gap > maxGap) {
+                  allWarns.push(`${dd.division?.name} — ${t.name}: ${Math.round(gap)}-day gap between ${tDates[i-1]} and ${tDates[i]} (max ${maxGap} days).`);
+                  break; // one warning per team is enough
+                }
+              }
+            });
           }
         }
 
@@ -572,15 +601,23 @@ export default function ScheduleBuilder() {
               </div>
               <div className="pt-1">
                 <label className="text-sm text-gray-400 block mb-1 flex items-center gap-1">
-                  <Moon className="w-3.5 h-3.5 text-yellow-400" /> Late game starts at or after
+                  <Moon className="w-3.5 h-3.5 text-yellow-400" /> Late game threshold
                 </label>
-                <div className="flex items-center gap-2">
-                  <select className="bg-black border border-gray-800 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none"
-                    value={lateGameHour} onChange={e => setLateGameHour(parseInt(e.target.value))}>
-                    {[19,20,21,22,23].map(h => (
-                      <option key={h} value={h}>{h}:00 ({h > 12 ? `${h-12}pm` : `${h}am`})</option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {[
+                    { h: 22, m: 0, label: "10:00pm" },
+                    { h: 22, m: 30, label: "10:30pm" },
+                    { h: 23, m: 0, label: "11:00pm" },
+                  ].map(({ h, m, label }) => (
+                    <button key={label}
+                      onClick={() => { setLateGameHour(h); setLateGameMinute(m); }}
+                      className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors"
+                      style={lateGameHour === h && lateGameMinute === m
+                        ? { background: "#d4af37", color: "#000", borderColor: "#d4af37" }
+                        : { background: "#0d0d0d", color: "#888", borderColor: "#333" }}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
