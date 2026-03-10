@@ -584,10 +584,17 @@ export default function ScheduleBuilder() {
                 </label>
                 <div className="flex items-center gap-2">
                   <select className="bg-black border border-gray-800 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none"
-                    value={lateGameHour} onChange={e => setLateGameHour(parseInt(e.target.value))}>
-                    {[19,20,21,22,23].map(h => (
-                      <option key={h} value={h}>{h}:00 ({h > 12 ? `${h-12}pm` : `${h}am`})</option>
-                    ))}
+                    value={`${lateGameThreshold.hour}:${String(lateGameThreshold.minute).padStart(2,"0")}`}
+                    onChange={e => {
+                      const [h, m] = e.target.value.split(":").map(Number);
+                      setLateGameThreshold({ hour: h, minute: m });
+                    }}>
+                    <option value="19:00">7:00 pm</option>
+                    <option value="20:00">8:00 pm</option>
+                    <option value="21:00">9:00 pm</option>
+                    <option value="22:00">10:00 pm</option>
+                    <option value="22:30">10:30 pm</option>
+                    <option value="23:00">11:00 pm</option>
                   </select>
                 </div>
               </div>
