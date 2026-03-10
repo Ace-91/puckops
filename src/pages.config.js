@@ -64,6 +64,7 @@ import ScheduleBuilder from './pages/ScheduleBuilder';
 import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
+import PublicData from './pages/PublicData';
 import __Layout from './Layout.jsx';
 
 
@@ -85,6 +86,7 @@ export const PAGES = {
     "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
+    "PublicData": PublicData,
 }
 
 export const pagesConfig = {
