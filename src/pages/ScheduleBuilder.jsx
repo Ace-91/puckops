@@ -354,8 +354,9 @@ export default function ScheduleBuilder() {
           const lateCounts = dd.divTeams.map(t => dd.teamLateCounts[t.id]);
           if (lateCounts.length > 0) {
             const maxLate = Math.max(...lateCounts), minLate = Math.min(...lateCounts);
+            const lateLabel = `${lateGameThreshold.hour}:${String(lateGameThreshold.minute).padStart(2,"0")}`;
             if (maxLate - minLate > 3)
-              allWarns.push(`${dd.division?.name}: Late game spread ${minLate}–${maxLate} — consider adding more late slots.`);
+              allWarns.push(`${dd.division?.name}: Late game spread ${minLate}–${maxLate} (${lateLabel}+) — consider adding more late slots.`);
           }
         }
 
