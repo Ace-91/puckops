@@ -24,6 +24,7 @@ const navItems = [
   { label: "Forfeits", page: "Forfeits", icon: AlertTriangle, roles: ["admin", "referee_coordinator", "team_manager"] },
   { label: "Analytics", page: "Analytics", icon: TrendingUp, roles: ["admin"] },
   { label: "User Management", page: "UserManagement", icon: Users, roles: ["admin"] },
+  { label: "Public Data Feed", page: "PublicData", icon: TrendingUp, roles: ["admin"] },
 ];
 
 // Pages that require a specific role — anyone else sees an access-denied screen
