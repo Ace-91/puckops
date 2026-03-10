@@ -177,11 +177,23 @@ export default function Officials() {
           <h1 className="text-2xl font-bold text-white">Officials</h1>
           <p className="text-gray-400 text-sm mt-1">{refs.length} referees · {tks.length} timekeepers</p>
         </div>
-        <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }}
-          className="flex items-center gap-2 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: SILVER }}>
-          <Plus className="w-4 h-4" /> Add Official
-        </button>
+        <div className="flex items-center gap-2">
+          <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={importCSV} />
+          <button onClick={() => fileInputRef.current?.click()} disabled={importing}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-colors disabled:opacity-50">
+            {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            Import
+          </button>
+          <button onClick={exportCSV}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-gray-700 text-gray-300 hover:text-white hover:border-gray-500 transition-colors">
+            <Download className="w-4 h-4" /> Export
+          </button>
+          <button onClick={() => { setEditing(null); setForm(emptyForm); setShowForm(true); }}
+            className="flex items-center gap-2 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: SILVER }}>
+            <Plus className="w-4 h-4" /> Add Official
+          </button>
+        </div>
       </div>
 
       {pendingCount > 0 && (
