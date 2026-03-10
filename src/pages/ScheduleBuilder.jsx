@@ -3,10 +3,10 @@ import { base44 } from "@/api/base44Client";
 import { Shuffle, AlertCircle, CheckCircle, Moon, Eye, Trash2, Loader2, AlertTriangle, ChevronDown, Plus, X, Calendar } from "lucide-react";
 import { batchDelete, batchUpdate } from "@/components/batchOps";
 
-const isLateTime = (t, lateHour = 22) => {
+const isLateTime = (t, lateHour = 22, lateMinute = 0) => {
   if (!t) return false;
   const [h, m] = t.split(":").map(Number);
-  return h > lateHour || (h === lateHour && m >= 0);
+  return h * 60 + m >= lateHour * 60 + lateMinute;
 };
 
 const daysBetween = (d1, d2) => Math.abs(new Date(d1) - new Date(d2)) / (1000 * 60 * 60 * 24);
@@ -40,7 +40,7 @@ export default function ScheduleBuilder() {
   const [newBlackout, setNewBlackout] = useState({ date_from: "", date_to: "", reason: "" });
   const [showBlackoutForm, setShowBlackoutForm] = useState(false);
 
-  const [lateGameHour, setLateGameHour] = useState(22);
+  const [lateGameThreshold, setLateGameThreshold] = useState({ hour: 22, minute: 0 });
 
   const [constraints, setConstraints] = useState({
     noSameDay: true,
