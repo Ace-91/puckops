@@ -88,10 +88,10 @@ export default function Layout({ children, currentPageName }) {
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
             <Link to={createPageUrl("Home")} className="flex items-center gap-2.5">
-              <HockeyOpsLogo size={36} />
+              <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a90e8dc98ea5930930f242/4fc17f271_ChatGPTImageMar9202611_27_17PM.png" alt="PuckOperations Logo" style={{ width: 40, height: 40, objectFit: "contain" }} />
               <div className="hidden sm:block">
                 <span className="font-bold text-lg" style={{ color: SILVER }}>Puck</span>
-                <span className="font-bold text-lg" style={{ color: GOLD }}>Ops</span>
+                <span className="font-bold text-lg" style={{ color: GOLD }}>Operations</span>
               </div>
             </Link>
           </div>
