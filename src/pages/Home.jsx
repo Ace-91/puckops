@@ -64,7 +64,7 @@ export default function Home() {
             <HockeyOpsLogo size={96} />
           </div>
           <h1 className="text-5xl md:text-6xl font-black mb-4 leading-tight">
-            <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
+            <span style={{ color: SILVER }}>Puck</span><span style={{ color: GOLD }}>Ops</span>
           </h1>
           <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
             The complete league management platform for hockey associations. Schedule games, manage teams, assign officials, and handle forfeits — all in one place.
@@ -142,7 +142,7 @@ export default function Home() {
       </section>
 
       <footer className="py-8 text-center border-t" style={{ borderColor: "#111", color: "#444" }}>
-        <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
+        <span style={{ color: SILVER }}>Puck</span><span style={{ color: GOLD }}>Ops</span>
         <span className="ml-2 text-xs">© 2026 — League Management Platform</span>
       </footer>
     </div>);
