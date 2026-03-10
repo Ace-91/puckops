@@ -689,7 +689,7 @@ export default function ScheduleBuilder() {
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold text-yellow-400 flex items-center justify-center gap-1"><Moon className="w-4 h-4" />{stats.lateGames}</div>
-                <div className="text-xs text-gray-400">Late ({lateGameHour}:00+)</div>
+                <div className="text-xs text-gray-400">Late ({lateGameThreshold.hour}:{String(lateGameThreshold.minute).padStart(2,"0")}+)</div>
               </div>
               <div className="rounded-lg p-3 text-center border border-gray-800" style={{ background: "#0d0d0d" }}>
                 <div className="text-2xl font-bold" style={{ color: "#c0c0c0" }}>{stats.divCount}</div>
