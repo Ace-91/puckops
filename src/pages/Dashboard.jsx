@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import ProgressModal from "@/components/ProgressModal";
+import LeagueMetricsCharts from "@/components/LeagueMetricsCharts";
 import { createPageUrl } from "@/utils";
 import { Calendar, Users, Shield, AlertTriangle, Clock, TrendingUp, ChevronRight, Settings, Globe, Trash2, Plus, X, CheckCircle, ChevronDown, ChevronUp, LogIn, UserPlus, Newspaper, CheckSquare, XSquare } from "lucide-react";
 
@@ -127,7 +128,7 @@ export default function Dashboard() {
           <div className="text-center md:text-left">
             
             <h1 className="text-4xl font-black tracking-tight">
-              <span style={{ color: SILVER }}>Hockey</span><span style={{ color: GOLD }}>Ops</span>
+              <span style={{ color: SILVER }}>Puck</span><span style={{ color: GOLD }}>Ops</span>
             </h1>
             <p className="text-gray-400 text-sm mt-1">League Management Platform</p>
           </div>
@@ -391,6 +392,9 @@ export default function Dashboard() {
             }
             </div>
           </div>
+
+          {/* League Metrics Charts — admin only */}
+          {isAdmin && <LeagueMetricsCharts />}
 
           {/* Admin: League Parameters */}
           {isAdmin &&

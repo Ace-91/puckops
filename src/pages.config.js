@@ -58,13 +58,13 @@ import OfficialAvailability from './pages/OfficialAvailability';
 import OfficialPortal from './pages/OfficialPortal';
 import Officials from './pages/Officials';
 import PublicBlackoutForm from './pages/PublicBlackoutForm';
+import PublicData from './pages/PublicData';
 import PublicForfeitForm from './pages/PublicForfeitForm';
 import Schedule from './pages/Schedule';
 import ScheduleBuilder from './pages/ScheduleBuilder';
 import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import PublicData from './pages/PublicData';
 import __Layout from './Layout.jsx';
 
 
@@ -80,13 +80,13 @@ export const PAGES = {
     "OfficialPortal": OfficialPortal,
     "Officials": Officials,
     "PublicBlackoutForm": PublicBlackoutForm,
+    "PublicData": PublicData,
     "PublicForfeitForm": PublicForfeitForm,
     "Schedule": Schedule,
     "ScheduleBuilder": ScheduleBuilder,
     "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "PublicData": PublicData,
 }
 
 export const pagesConfig = {
