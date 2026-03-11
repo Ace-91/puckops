@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Calendar, Shield, Clock, ArrowLeftRight, CheckCircle, XCircle, Moon, AlertCircle, Plus, X } from "lucide-react";
 
 export default function OfficialPortal() {
+  const { leagueId } = useLeague();
   const [user, setUser] = useState(null);
   const [myOfficial, setMyOfficial] = useState(null);
   const [myGames, setMyGames] = useState([]);
@@ -21,10 +23,11 @@ export default function OfficialPortal() {
     setUser(u);
     if (!u) { setLoading(false); return; }
 
+    const q = leagueId ? { league_id: leagueId } : {};
     const [officials, games, trades] = await Promise.all([
-      base44.entities.Official.list(),
-      base44.entities.Game.filter({ status: "scheduled" }),
-      base44.entities.OfficialTrade.list("-created_date"),
+      base44.entities.Official.filter(q),
+      base44.entities.Game.filter({ ...q, status: "scheduled" }),
+      base44.entities.OfficialTrade.filter(q, "-created_date"),
     ]);
 
     const me = officials.find(o => o.user_email === u.email);
@@ -58,6 +61,7 @@ export default function OfficialPortal() {
     const targetOff = officials.find(o => o.id === tradeForm.target_official_id);
 
     await base44.entities.OfficialTrade.create({
+      league_id: leagueId || "",
       requester_id: myOfficial.id,
       requester_name: myOfficial.full_name,
       requester_game_id: myGame.id,

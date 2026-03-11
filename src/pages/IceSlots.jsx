@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Plus, Trash2, MapPin, X, Moon, Upload, Download, CheckSquare, Square, RefreshCw, Clock, FileDown } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
 import IceSlotCalculator from "@/components/IceSlotCalculator";
@@ -18,6 +19,7 @@ const isLate = (time) => {
 };
 
 export default function IceSlots() {
+  const { leagueId } = useLeague();
   const [arenas, setArenas] = useState([]);
   const [slots, setSlots] = useState([]);
   const [games, setGames] = useState([]);
@@ -46,16 +48,17 @@ export default function IceSlots() {
   const [progress, setProgress] = useState(null);
   const cancelRef = useRef(false);
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { if (leagueId !== undefined) loadAll(); }, [leagueId]);
 
   const loadAll = async () => {
     setLoading(true);
+    const q = leagueId ? { league_id: leagueId } : {};
     const [a, s, g, d, t] = await Promise.all([
-      base44.entities.Arena.list(),
-      base44.entities.IceSlot.list("date", 5000),
-      base44.entities.Game.list("date", 2000),
-      base44.entities.Division.list(),
-      base44.entities.Team.list(),
+      base44.entities.Arena.filter(q),
+      base44.entities.IceSlot.filter(q, "date", 5000),
+      base44.entities.Game.filter(q, "date", 2000),
+      base44.entities.Division.filter(q),
+      base44.entities.Team.filter(q),
     ]);
     setArenas(a);
     setSlots(s);
@@ -120,6 +123,7 @@ export default function IceSlots() {
         season: row.season || "2025-2026",
         is_late_game: isLate(row.start_time),
         is_available: true,
+        league_id: leagueId || "",
       });
     }
 
@@ -144,7 +148,7 @@ export default function IceSlots() {
   };
 
   const saveArena = async () => {
-    await base44.entities.Arena.create(arenaForm);
+    await base44.entities.Arena.create({ ...arenaForm, league_id: leagueId || "" });
     setShowArenaForm(false);
     setArenaForm({ name: "", address: "" });
     loadAll();
@@ -201,6 +205,7 @@ export default function IceSlots() {
             season: bulkForm.season,
             is_late_game: isLate(bulkForm.start_time),
             is_available: true,
+            league_id: leagueId || "",
           });
         }
       }

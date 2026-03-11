@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Calendar, Moon, ChevronLeft, ChevronRight, Search, Download, Pencil, Check, X, Filter, Trash2, CheckSquare, Square, MapPin, Clock, Users, AlertTriangle } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
 import { batchDelete } from "@/components/batchOps";
@@ -15,6 +16,7 @@ const STATUS_COLORS = {
 };
 
 export default function Schedule() {
+  const { leagueId } = useLeague();
   const [games, setGames] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,16 +43,17 @@ export default function Schedule() {
 
   const load = async () => {
     setLoading(true);
+    const q = leagueId ? { league_id: leagueId } : {};
     const [g, d] = await Promise.all([
-      base44.entities.Game.list("date", 5000),
-      base44.entities.Division.list(),
+      base44.entities.Game.filter(q, "date", 5000),
+      base44.entities.Division.filter(q),
     ]);
     setGames(g);
     setDivisions(d);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (leagueId !== undefined) load(); }, [leagueId]);
 
   const filtered = games.filter(g =>
     (filterDiv === "all" || g.division_id === filterDiv) &&

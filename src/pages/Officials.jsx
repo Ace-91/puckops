@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Plus, X, Pencil, Trash2, Shield, Clock, Download, Upload, Loader2 } from "lucide-react";
 
 const GOLD = "#d4af37";
@@ -36,6 +37,7 @@ function TKAvatar({ name, size = 36 }) {
 const emptyForm = { full_name: "", user_email: "", phone: "", role: "referee", certification_level: "level2", preferred_divisions: [], max_games_per_week: 5, notes: "", is_active: true, approval_status: "approved" };
 
 export default function Officials() {
+  const { leagueId } = useLeague();
   const [officials, setOfficials] = useState([]);
   const [divisions, setDivisions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,13 +49,14 @@ export default function Officials() {
 
   useEffect(() => {
     const load = async () => {
-      const [o, d] = await Promise.all([base44.entities.Official.list(), base44.entities.Division.list()]);
+      const q = leagueId ? { league_id: leagueId } : {};
+      const [o, d] = await Promise.all([base44.entities.Official.filter(q), base44.entities.Division.filter(q)]);
       setOfficials(o);
       setDivisions(d);
       setLoading(false);
     };
     load();
-  }, []);
+  }, [leagueId]);
 
   const approveOfficial = async (id) => {
     await base44.entities.Official.update(id, { approval_status: "approved" });
@@ -71,7 +74,7 @@ export default function Officials() {
     if (editing) {
       await base44.entities.Official.update(editing.id, form);
     } else {
-      await base44.entities.Official.create(form);
+      await base44.entities.Official.create({ ...form, league_id: leagueId || "" });
     }
     setShowForm(false); setEditing(null); setForm(emptyForm);
     const o = await base44.entities.Official.list();
@@ -153,7 +156,7 @@ export default function Officials() {
 
     let success = 0, failed = 0;
     for (const r of records) {
-      try { await base44.entities.Official.create(r); success++; }
+      try { await base44.entities.Official.create({ ...r, league_id: leagueId || "" }); success++; }
       catch { failed++; }
     }
     const o = await base44.entities.Official.list();

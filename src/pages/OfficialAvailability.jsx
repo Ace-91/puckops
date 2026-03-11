@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Plus, X, CalendarX, CheckCircle } from "lucide-react";
 
 export default function OfficialAvailability() {
+  const { leagueId } = useLeague();
   const [user, setUser] = useState(null);
   const [myOfficial, setMyOfficial] = useState(null);
   const [availability, setAvailability] = useState([]);
@@ -16,7 +18,8 @@ export default function OfficialAvailability() {
     const load = async () => {
       const u = await base44.auth.me().catch(() => null);
       setUser(u);
-      const [offs, avails] = await Promise.all([base44.entities.Official.list(), base44.entities.OfficialAvailability.list("-date", 200)]);
+      const q = leagueId ? { league_id: leagueId } : {};
+      const [offs, avails] = await Promise.all([base44.entities.Official.filter(q), base44.entities.OfficialAvailability.filter(q, "-date", 200)]);
       setOfficials(offs);
       const mine = offs.find(o => o.user_email === u?.email);
       setMyOfficial(mine);
@@ -32,21 +35,24 @@ export default function OfficialAvailability() {
 
   const submit = async () => {
     if (!displayOfficial) return;
+    const q = leagueId ? { league_id: leagueId } : {};
     await base44.entities.OfficialAvailability.create({
       ...form,
       official_id: displayOfficial.id,
       official_name: displayOfficial.full_name,
       official_email: displayOfficial.user_email,
+      league_id: leagueId || "",
     });
     setShowForm(false);
     setForm({ date: "", available_from: "", available_to: "", is_unavailable: false, notes: "", season: "2025-2026" });
-    const avails = await base44.entities.OfficialAvailability.list("-date", 200);
+    const avails = await base44.entities.OfficialAvailability.filter(q, "-date", 200);
     setAvailability(avails);
   };
 
   const del = async (id) => {
     await base44.entities.OfficialAvailability.delete(id);
-    const avails = await base44.entities.OfficialAvailability.list("-date", 200);
+    const q = leagueId ? { league_id: leagueId } : {};
+    const avails = await base44.entities.OfficialAvailability.filter(q, "-date", 200);
     setAvailability(avails);
   };
 

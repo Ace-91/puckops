@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Link } from "react-router-dom";
 import ProgressModal from "@/components/ProgressModal";
 import LeagueMetricsCharts from "@/components/LeagueMetricsCharts";
@@ -13,6 +14,7 @@ const NEWS_ITEMS = [
 
 
 export default function Dashboard() {
+  const { leagueId, ready } = useLeague();
   const [stats, setStats] = useState({ teams: 0, games: 0, officials: 0, forfeits: 0, pendingBlackouts: 0, pendingOfficials: 0 });
   const [pendingOfficials, setPendingOfficials] = useState([]);
   const [upcomingGames, setUpcomingGames] = useState([]);
@@ -38,13 +40,15 @@ export default function Dashboard() {
   const reload = async () => {
     const u = await base44.auth.me().catch(() => null);
     setUser(u);
+    const lid = u?.league_id;
+    const q = lid ? { league_id: lid } : {};
     const [teams, games, officials, forfeits, blackouts, seasons] = await Promise.all([
-    base44.entities.Team.list(),
-    base44.entities.Game.list("date", 500),
-    base44.entities.Official.list(),
-    base44.entities.Forfeit.list("-created_date"),
-    base44.entities.BlackoutDate.list("-created_date"),
-    base44.entities.LeagueSeason.list("-created_date")]
+    base44.entities.Team.filter(q),
+    base44.entities.Game.filter(q, "date", 500),
+    base44.entities.Official.filter(q),
+    base44.entities.Forfeit.filter(q, "-created_date"),
+    base44.entities.BlackoutDate.filter(q, "-created_date"),
+    base44.entities.LeagueSeason.filter(q, "-created_date")]
     );
     setStats({
       teams: teams.length,
@@ -70,7 +74,8 @@ export default function Dashboard() {
 
   const saveSeason = async () => {
     setSavingParam(true);
-    await base44.entities.LeagueSeason.create(seasonForm);
+    const u = await base44.auth.me().catch(() => null);
+    await base44.entities.LeagueSeason.create({ ...seasonForm, league_id: u?.league_id || "" });
     setShowSeasonForm(false);
     setSeasonForm({ name: "2025-2026", season_start: "", season_end: "", playoff_start: "", games_per_team: 30, schedule_release_weeks: 4, allow_team_realignment: true, status: "planning", notes: "" });
     await reload();

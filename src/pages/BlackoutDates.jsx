@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Plus, X, CheckCircle, XCircle, AlertTriangle, Globe, Users } from "lucide-react";
 
 export default function BlackoutDates() {
+  const { leagueId } = useLeague();
   const [blackouts, setBlackouts] = useState([]);
   const [teams, setTeams] = useState([]);
   const [user, setUser] = useState(null);
@@ -22,7 +24,8 @@ export default function BlackoutDates() {
     const load = async () => {
       const u = await base44.auth.me().catch(() => null);
       setUser(u);
-      const [b, t] = await Promise.all([base44.entities.BlackoutDate.list("-created_date"), base44.entities.Team.list()]);
+      const q = leagueId ? { league_id: leagueId } : {};
+      const [b, t] = await Promise.all([base44.entities.BlackoutDate.filter(q, "-created_date"), base44.entities.Team.filter(q)]);
       setBlackouts(b);
       setTeams(t);
       setLoading(false);
@@ -34,7 +37,8 @@ export default function BlackoutDates() {
   const myTeams = isAdmin ? teams : teams.filter(t => t.manager_email === user?.email);
 
   const reload = async () => {
-    const b = await base44.entities.BlackoutDate.list("-created_date");
+    const q = leagueId ? { league_id: leagueId } : {};
+    const b = await base44.entities.BlackoutDate.filter(q, "-created_date");
     setBlackouts(b);
   };
 
@@ -46,6 +50,7 @@ export default function BlackoutDates() {
     }
     const team = teams.find(t => t.id === form.team_id);
     await base44.entities.BlackoutDate.create({
+      league_id: leagueId || "",
       team_id: form.is_league ? "league" : form.team_id,
       team_name: form.is_league ? "LEAGUE" : (team?.name || ""),
       division_id: form.is_league ? "" : (team?.division_id || ""),

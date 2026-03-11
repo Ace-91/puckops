@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { AlertTriangle, Plus, X, Clock, CheckCircle, XCircle, Mail, Trophy, RefreshCw, Calendar, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_COLORS = {
@@ -11,6 +12,7 @@ const STATUS_COLORS = {
 };
 
 export default function Forfeits() {
+  const { leagueId } = useLeague();
   const [forfeits, setForfeits] = useState([]);
   const [forfeitResponses, setForfeitResponses] = useState([]);
   const [games, setGames] = useState([]);
@@ -25,9 +27,10 @@ export default function Forfeits() {
   const [editForfeitForm, setEditForfeitForm] = useState({});
 
   const reload = async () => {
+    const q = leagueId ? { league_id: leagueId } : {};
     const [f, fr] = await Promise.all([
-      base44.entities.Forfeit.list("-created_date"),
-      base44.entities.ForfeitResponse.list(),
+      base44.entities.Forfeit.filter(q, "-created_date"),
+      base44.entities.ForfeitResponse.filter(q),
     ]);
     setForfeits(f);
     setForfeitResponses(fr);
@@ -38,11 +41,12 @@ export default function Forfeits() {
       const u = await base44.auth.me().catch(() => null);
       setUser(u);
       const today = new Date().toISOString().split("T")[0];
+      const q = leagueId ? { league_id: leagueId } : {};
       const [f, g, t, fr] = await Promise.all([
-        base44.entities.Forfeit.list("-created_date"),
-        base44.entities.Game.filter({ status: "scheduled" }),
-        base44.entities.Team.list(),
-        base44.entities.ForfeitResponse.list(),
+        base44.entities.Forfeit.filter(q, "-created_date"),
+        base44.entities.Game.filter({ ...q, status: "scheduled" }),
+        base44.entities.Team.filter(q),
+        base44.entities.ForfeitResponse.filter(q),
       ]);
       setForfeits(f);
       setGames(g.filter(game => game.date >= today));
@@ -76,6 +80,7 @@ export default function Forfeits() {
 
     // Create forfeit
     const forfeit = await base44.entities.Forfeit.create({
+      league_id: leagueId || "",
       game_id: form.game_id,
       game_date: game.date,
       game_time: game.start_time,
@@ -111,6 +116,7 @@ export default function Forfeits() {
       const divisionTeams = teams.filter(t => t.division_id === game.division_id && t.id !== forfeitingTeam?.id && t.id !== opposingTeamId);
       for (const team of divisionTeams) {
         await base44.entities.ForfeitResponse.create({
+          league_id: leagueId || "",
           forfeit_id: forfeit.id,
           team_id: team.id,
           team_name: team.name,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, Users, X, Upload, Download, CheckSquare, Square, ArrowUpDown, List, LayoutGrid, MoveRight, FileDown } from "lucide-react";
 import ProgressModal from "@/components/ProgressModal";
 import { batchDelete, batchUpdate, bulkCreateInChunks } from "@/components/batchOps";
@@ -20,6 +21,7 @@ function ImportProgress({ total, current, done }) {
 }
 
 export default function TeamsAndDivisions() {
+  const { leagueId } = useLeague();
   const [divisions, setDivisions] = useState([]);
   const [teams, setTeams] = useState([]);
   const [expanded, setExpanded] = useState({});
@@ -122,7 +124,7 @@ export default function TeamsAndDivisions() {
       if (!row.team_name) { skipped++; continue; }
       let div = currentDivs.find(d => d.name.toLowerCase() === row.division_name?.toLowerCase());
       if (!div && row.division_name) {
-        div = await base44.entities.Division.create({ name: row.division_name, season: row.season || "2025-2026", games_per_team: 30 });
+        div = await base44.entities.Division.create({ name: row.division_name, season: row.season || "2025-2026", games_per_team: 30, league_id: leagueId || "" });
         currentDivs.push(div);
       }
       const teamData = {
@@ -133,6 +135,7 @@ export default function TeamsAndDivisions() {
         manager_email: row.manager_email || "",
         manager_phone: row.manager_phone || "",
         season: row.season || "2025-2026",
+        league_id: leagueId || "",
       };
       const existing = currentTeams.find(t =>
         t.name.toLowerCase() === row.team_name.toLowerCase() &&
@@ -171,7 +174,8 @@ export default function TeamsAndDivisions() {
 
   const loadAll = async () => {
     setLoading(true);
-    const [d, t] = await Promise.all([base44.entities.Division.list(), base44.entities.Team.list()]);
+    const q = leagueId ? { league_id: leagueId } : {};
+    const [d, t] = await Promise.all([base44.entities.Division.filter(q), base44.entities.Team.filter(q)]);
     setDivisions(d);
     setTeams(t);
     setSelectedTeamIds(new Set());
@@ -180,7 +184,7 @@ export default function TeamsAndDivisions() {
 
   const saveDiv = async () => {
     if (editingDiv) await base44.entities.Division.update(editingDiv.id, divForm);
-    else await base44.entities.Division.create(divForm);
+    else await base44.entities.Division.create({ ...divForm, league_id: leagueId || "" });
     setShowDivForm(false); setEditingDiv(null);
     setDivForm({ name: "", level: "", season: "2025-2026", games_per_team: 30 });
     loadAll();
@@ -196,7 +200,7 @@ export default function TeamsAndDivisions() {
 
   const saveTeam = async () => {
     const div = divisions.find(d => d.id === selectedDivId);
-    const data = { ...teamForm, division_id: selectedDivId || "", division_name: div?.name || "" };
+    const data = { ...teamForm, division_id: selectedDivId || "", division_name: div?.name || "", league_id: leagueId || "" };
     if (editingTeam) await base44.entities.Team.update(editingTeam.id, data);
     else await base44.entities.Team.create(data);
     setShowTeamForm(false); setEditingTeam(null);

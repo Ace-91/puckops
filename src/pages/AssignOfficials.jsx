@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Shield, Clock, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Moon, GripVertical, X, Info, Zap, Loader2 } from "lucide-react";
 
 export default function AssignOfficials() {
+  const { leagueId } = useLeague();
   const [games, setGames] = useState([]);
   const [officials, setOfficials] = useState([]);
   const [availability, setAvailability] = useState([]);
@@ -21,11 +23,12 @@ export default function AssignOfficials() {
   const load = async () => {
     setLoading(true);
     const today = new Date().toISOString().split("T")[0];
+    const q = leagueId ? { league_id: leagueId } : {};
     const [g, o, a, d] = await Promise.all([
-      base44.entities.Game.list("date", 2000),
-      base44.entities.Official.filter({ is_active: true }),
-      base44.entities.OfficialAvailability.list(),
-      base44.entities.Division.list(),
+      base44.entities.Game.filter(q, "date", 2000),
+      base44.entities.Official.filter({ ...q, is_active: true }),
+      base44.entities.OfficialAvailability.filter(q),
+      base44.entities.Division.filter(q),
     ]);
     const upcoming = g
       .filter(game => game.date >= today && game.status !== "forfeited" && game.status !== "completed")
@@ -41,7 +44,7 @@ export default function AssignOfficials() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (leagueId !== undefined) load(); }, [leagueId]);
 
   const isAvailable = (officialId, date) => {
     const dayAvail = availability.filter(a => a.official_id === officialId && a.date === date);

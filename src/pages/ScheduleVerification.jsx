@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronRight, Calendar, Users, Clock, Filter } from "lucide-react";
 
 const GOLD = "#d4af37";
@@ -13,6 +14,7 @@ function StatusBadge({ type }) {
 }
 
 export default function ScheduleVerification() {
+  const { leagueId } = useLeague();
   const [games, setGames] = useState([]);
   const [teams, setTeams] = useState([]);
   const [divisions, setDivisions] = useState([]);
@@ -24,10 +26,11 @@ export default function ScheduleVerification() {
 
   useEffect(() => {
     const load = async () => {
+      const q = leagueId ? { league_id: leagueId } : {};
       const [g, t, d] = await Promise.all([
-        base44.entities.Game.list("date", 5000),
-        base44.entities.Team.list(),
-        base44.entities.Division.list(),
+        base44.entities.Game.filter(q, "date", 5000),
+        base44.entities.Team.filter(q),
+        base44.entities.Division.filter(q),
       ]);
       setGames(g.filter(game => game.game_type === "regular" && game.status !== "forfeited"));
       setTeams(t);
@@ -35,7 +38,7 @@ export default function ScheduleVerification() {
       setLoading(false);
     };
     load();
-  }, []);
+  }, [leagueId]);
 
   const daysBetween = (d1, d2) => Math.abs(new Date(d1) - new Date(d2)) / (1000 * 60 * 60 * 24);
 

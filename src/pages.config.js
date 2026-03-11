@@ -54,6 +54,8 @@ import Dashboard from './pages/Dashboard';
 import Forfeits from './pages/Forfeits';
 import Home from './pages/Home';
 import IceSlots from './pages/IceSlots';
+import LeagueManagement from './pages/LeagueManagement';
+import LeagueSettings from './pages/LeagueSettings';
 import OfficialAvailability from './pages/OfficialAvailability';
 import OfficialPortal from './pages/OfficialPortal';
 import Officials from './pages/Officials';
@@ -65,8 +67,6 @@ import ScheduleBuilder from './pages/ScheduleBuilder';
 import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import LeagueManagement from './pages/LeagueManagement';
-import LeagueSettings from './pages/LeagueSettings';
 import __Layout from './Layout.jsx';
 
 
@@ -78,6 +78,8 @@ export const PAGES = {
     "Forfeits": Forfeits,
     "Home": Home,
     "IceSlots": IceSlots,
+    "LeagueManagement": LeagueManagement,
+    "LeagueSettings": LeagueSettings,
     "OfficialAvailability": OfficialAvailability,
     "OfficialPortal": OfficialPortal,
     "Officials": Officials,
@@ -89,8 +91,6 @@ export const PAGES = {
     "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "LeagueManagement": LeagueManagement,
-    "LeagueSettings": LeagueSettings,
 }
 
 export const pagesConfig = {

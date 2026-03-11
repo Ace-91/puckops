@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { Users, Shield, Search, Pencil, Check, X, Plus, Phone, Mail, Star, KeyRound, ExternalLink } from "lucide-react";
 import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
@@ -20,6 +21,7 @@ const CERT_COLORS = {
 };
 
 export default function UserManagement() {
+  const { leagueId } = useLeague();
   const [users, setUsers] = useState([]);
   const [officials, setOfficials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -40,10 +42,11 @@ export default function UserManagement() {
 
   const load = async () => {
     setLoading(true);
+    const q = leagueId ? { league_id: leagueId } : {};
     const [u, o, d] = await Promise.all([
-      base44.entities.User.list(),
-      base44.entities.Official.list(),
-      base44.entities.Division.list(),
+      base44.entities.User.filter(q),
+      base44.entities.Official.filter(q),
+      base44.entities.Division.filter(q),
     ]);
     setUsers(u);
     setOfficials(o);
@@ -51,7 +54,7 @@ export default function UserManagement() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (leagueId !== undefined) load(); }, [leagueId]);
 
   const saveRole = async (userId) => {
     setSaving(true);

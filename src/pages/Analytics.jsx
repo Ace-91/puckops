@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { TrendingUp, Calendar, Users, Shield, AlertTriangle, Moon, MapPin, Clock } from "lucide-react";
 
@@ -17,6 +18,7 @@ const StatCard = ({ label, value, icon: Icon, color }) => (
 );
 
 export default function Analytics() {
+  const { leagueId } = useLeague();
   const [games, setGames] = useState([]);
   const [teams, setTeams] = useState([]);
   const [divisions, setDivisions] = useState([]);
@@ -31,13 +33,14 @@ export default function Analytics() {
       const u = await base44.auth.me().catch(() => null);
       setUser(u);
       if (!u || u.role !== "admin") { setLoading(false); return; }
+      const q = u.league_id ? { league_id: u.league_id } : {};
       const [g, t, d, o, f, s] = await Promise.all([
-        base44.entities.Game.list("date", 3000),
-        base44.entities.Team.list(),
-        base44.entities.Division.list(),
-        base44.entities.Official.list(),
-        base44.entities.Forfeit.list("-created_date"),
-        base44.entities.IceSlot.list("date", 5000),
+        base44.entities.Game.filter(q, "date", 3000),
+        base44.entities.Team.filter(q),
+        base44.entities.Division.filter(q),
+        base44.entities.Official.filter(q),
+        base44.entities.Forfeit.filter(q, "-created_date"),
+        base44.entities.IceSlot.filter(q, "date", 5000),
       ]);
       setGames(g); setTeams(t); setDivisions(d); setOfficials(o); setForfeits(f); setSlots(s);
       setLoading(false);
