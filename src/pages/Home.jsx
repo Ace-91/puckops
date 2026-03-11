@@ -124,26 +124,51 @@ export default function Home() {
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: `radial-gradient(ellipse at 30% 40%, ${GOLD} 0%, transparent 55%), radial-gradient(ellipse at 70% 60%, ${SILVER} 0%, transparent 55%)`
         }} />
-        <div className="relative max-w-4xl mx-auto">
-          <div className="flex justify-center mb-6">
-            <HockeyOpsLogo size={96} />
+        <div className="relative max-w-5xl mx-auto">
+          {/* Badge */}
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border" 
+              style={{ borderColor: GOLD }}>
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: GOLD }} />
+              <span className="text-sm font-bold" style={{ color: GOLD }}>All hockey ops in one place</span>
+            </div>
           </div>
-          <h1 className="text-5xl md:text-6xl font-black italic mb-4 leading-tight" style={{ fontFamily: "Arial Black, Arial, sans-serif" }}>
-            <span style={{ color: GOLD }}>Puck</span><span style={{ color: SILVER }}>Operations</span>
+
+          {/* Logo + Brand */}
+          <div className="flex justify-center mb-8">
+            <div className="flex items-center gap-3">
+              <HockeyOpsLogo size={64} />
+              <h2 className="text-3xl font-black italic" style={{ fontFamily: "Arial Black, Arial, sans-serif" }}>
+                <span style={{ color: GOLD }}>Puck</span><span style={{ color: SILVER }}>Operations</span>
+              </h2>
+            </div>
+          </div>
+
+          {/* Main Headline */}
+          <h1 className="text-6xl md:text-7xl font-black leading-tight mb-2" style={{ fontFamily: "Arial Black, Arial, sans-serif" }}>
+            <span className="text-white">Set up your league.</span>
+            <br />
+            <span style={{ color: GOLD }}>Professionally</span>
+            <br />
+            <span className="text-white">managed.</span>
           </h1>
-          <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-            The complete league management platform for hockey associations. Schedule games, manage teams, assign officials, and handle forfeits — all in one place.
+
+          {/* Subheading */}
+          <p className="text-lg text-gray-400 mb-10 max-w-3xl mx-auto leading-relaxed">
+            Schedule games, manage teams, assign officials, and handle forfeits — everything you need to run a league smoothly.
           </p>
+
+          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button onClick={() => base44.auth.redirectToLogin()}
               className="px-10 py-4 rounded-xl text-lg font-bold text-black transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
-              <UserPlus className="w-5 h-5 inline mr-2" />Start Free Trial
+              Start Free Trial <ArrowRight className="w-5 h-5 inline ml-2" />
             </button>
             <button onClick={() => base44.auth.redirectToLogin()}
               className="px-10 py-4 rounded-xl text-lg font-semibold transition-all hover:scale-105 border"
               style={{ borderColor: SILVER, color: SILVER }}>
-              <LogIn className="w-5 h-5 inline mr-2" />Sign In
+              View Pricing
             </button>
           </div>
         </div>
