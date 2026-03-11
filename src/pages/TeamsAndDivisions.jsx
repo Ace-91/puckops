@@ -53,7 +53,7 @@ export default function TeamsAndDivisions() {
   const [movingTeam, setMovingTeam] = useState(null);
   const [moveTargetDivId, setMoveTargetDivId] = useState("");
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { if (leagueId !== undefined) loadAll(); }, [leagueId]);
 
   const exportTeamsCSV = () => {
     const rows = [["division_name", "team_name", "manager_name", "manager_email", "manager_phone", "season"]];

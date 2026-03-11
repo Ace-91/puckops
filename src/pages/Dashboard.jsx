@@ -67,7 +67,7 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  useEffect(() => {reload();}, []);
+  useEffect(() => { if (leagueId !== undefined) reload(); }, [leagueId]);
 
   const isAdmin = user?.role === "admin";
   const isLoggedIn = !!user;

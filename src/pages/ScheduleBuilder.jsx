@@ -70,8 +70,8 @@ export default function ScheduleBuilder() {
       setExistingGames(g);
       setLeagueBlackoutList(b.filter(x => !x.team_id || x.team_id === "league"));
     };
-    load();
-  }, []);
+    if (leagueId !== undefined) load();
+  }, [leagueId]);
 
   const addLeagueBlackout = async () => {
     if (!newBlackout.date_from) return;

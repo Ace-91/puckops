@@ -49,7 +49,7 @@ export default function OfficialPortal() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { if (leagueId !== undefined) load(); }, [leagueId]);
 
   const submitTrade = async () => {
     if (!tradeForm.my_game_id || !tradeForm.target_official_id || !tradeForm.target_game_id) {

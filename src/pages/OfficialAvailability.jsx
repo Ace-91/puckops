@@ -26,8 +26,8 @@ export default function OfficialAvailability() {
       setAvailability(avails);
       setLoading(false);
     };
-    load();
-  }, []);
+    if (leagueId !== undefined) load();
+  }, [leagueId]);
 
   const isAdmin = user?.role === "admin" || user?.role === "referee_coordinator";
   const displayOfficial = viewAs ? officials.find(o => o.id === viewAs) : myOfficial;

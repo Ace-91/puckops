@@ -30,8 +30,8 @@ export default function BlackoutDates() {
       setTeams(t);
       setLoading(false);
     };
-    load();
-  }, []);
+    if (leagueId !== undefined) load();
+  }, [leagueId]);
 
   const isAdmin = user?.role === "admin" || user?.role === "referee_coordinator";
   const myTeams = isAdmin ? teams : teams.filter(t => t.manager_email === user?.email);

@@ -54,8 +54,8 @@ export default function Forfeits() {
       setForfeitResponses(fr);
       setLoading(false);
     };
-    load();
-  }, []);
+    if (leagueId !== undefined) load();
+  }, [leagueId]);
 
   const isAdmin = user?.role === "admin" || user?.role === "referee_coordinator";
   const myTeams = teams.filter(t => t.manager_email === user?.email);
