@@ -242,6 +242,31 @@ export default function ScheduleBuilder() {
         const minGap = constraints.minGapDays || 0;
         const maxGap = constraints.maxDaysBetweenGames || 0;
 
+        // ── Build weighted round-robin rotation cycle ─────────────────────────
+        // Each division appears in the cycle proportional to its share of total
+        // games, so ice slots are distributed evenly across ALL divisions
+        // throughout the season rather than front-loading any single division.
+        const totalGamesAll = activeDivIds.reduce((s, id) => s + divDataMap[id].totalTarget, 0);
+        const rotationCycle = [];
+        if (totalGamesAll > 0) {
+          const divWeights = {};
+          activeDivIds.forEach(id => { divWeights[id] = divDataMap[id].totalTarget / totalGamesAll; });
+          const cycleLen = Math.min(totalGamesAll, 200);
+          const placed = {};
+          activeDivIds.forEach(id => { placed[id] = 0; });
+          for (let i = 0; i < cycleLen; i++) {
+            // Bresenham-style: pick division most behind its expected share
+            let best = null, bestDeficit = -Infinity;
+            activeDivIds.forEach(id => {
+              const deficit = divWeights[id] * (i + 1) - placed[id];
+              if (deficit > bestDeficit) { bestDeficit = deficit; best = id; }
+            });
+            rotationCycle.push(best);
+            placed[best]++;
+          }
+        }
+        let rotationIdx = 0;
+
         // League-wide late game tracking (per team, across all divisions)
         const leagueLateCount = {};
         activeDivIds.forEach(divId => {
