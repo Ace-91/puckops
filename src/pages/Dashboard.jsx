@@ -38,33 +38,40 @@ export default function Dashboard() {
   const GOLD = "#d4af37";
 
   const reload = async () => {
-    const u = await base44.auth.me().catch(() => null);
-    setUser(u);
-    const lid = u?.league_id;
-    const q = lid ? { league_id: lid } : {};
-    const [teams, games, officials, forfeits, blackouts, seasons] = await Promise.all([
-    base44.entities.Team.filter(q),
-    base44.entities.Game.filter(q, "date", 500),
-    base44.entities.Official.filter(q),
-    base44.entities.Forfeit.filter(q, "-created_date"),
-    base44.entities.BlackoutDate.filter(q, "-created_date"),
-    base44.entities.LeagueSeason.filter(q, "-created_date")]
-    );
-    setStats({
-      teams: teams.length,
-      games: games.length,
-      officials: officials.length,
-      forfeits: forfeits.length,
-      pendingBlackouts: blackouts.filter((b) => b.status === "pending").length,
-      pendingOfficials: officials.filter((o) => o.approval_status === "pending").length
-    });
-    setPendingOfficials(officials.filter((o) => o.approval_status === "pending"));
-    const today = new Date().toISOString().split("T")[0];
-    setUpcomingGames(games.filter((g) => g.date >= today && g.status === "scheduled").slice(0, 6));
-    setRecentForfeits(forfeits.slice(0, 5));
-    setLeagueBlackouts(blackouts.filter((b) => b.team_id === "league" && b.status === "approved"));
-    setSeasons(seasons);
-    setLoading(false);
+    try {
+      setLoading(true);
+      const u = await base44.auth.me().catch(() => null);
+      setUser(u);
+      const lid = u?.league_id;
+      const q = lid ? { league_id: lid } : {};
+      
+      // Fetch with individual error handling
+      const teams = await base44.entities.Team.filter(q).catch(() => []);
+      const games = await base44.entities.Game.filter(q, "date", 500).catch(() => []);
+      const officials = await base44.entities.Official.filter(q).catch(() => []);
+      const forfeits = await base44.entities.Forfeit.filter(q, "-created_date").catch(() => []);
+      const blackouts = await base44.entities.BlackoutDate.filter(q, "-created_date").catch(() => []);
+      const seasons = await base44.entities.LeagueSeason.filter(q, "-created_date").catch(() => []);
+
+      setStats({
+        teams: teams.length,
+        games: games.length,
+        officials: officials.length,
+        forfeits: forfeits.length,
+        pendingBlackouts: blackouts.filter((b) => b.status === "pending").length,
+        pendingOfficials: officials.filter((o) => o.approval_status === "pending").length
+      });
+      setPendingOfficials(officials.filter((o) => o.approval_status === "pending"));
+      const today = new Date().toISOString().split("T")[0];
+      setUpcomingGames(games.filter((g) => g.date >= today && g.status === "scheduled").slice(0, 6));
+      setRecentForfeits(forfeits.slice(0, 5));
+      setLeagueBlackouts(blackouts.filter((b) => b.team_id === "league" && b.status === "approved"));
+      setSeasons(seasons);
+    } catch (error) {
+      console.error("Dashboard reload error:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { if (leagueId !== undefined) reload(); }, [leagueId]);
