@@ -100,26 +100,21 @@ export default function Home() {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            {user ? (
-              <Link to={createPageUrl("Dashboard")}
-                className="px-5 py-2 rounded-lg text-sm font-bold text-black transition-all hover:scale-105"
-                style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
-                Go to Dashboard <ArrowRight className="w-4 h-4 inline ml-1" />
-              </Link>
-            ) : (
-              <>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="text-sm font-medium transition-colors hover:text-white"
-                  style={{ color: SILVER }}>
-                  Sign In
-                </button>
-                <button onClick={() => base44.auth.redirectToLogin()}
-                  className="px-5 py-2 rounded-lg text-sm font-bold text-black transition-all hover:scale-105"
-                  style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
-                  Get Started
-                </button>
-              </>
-            )}
+            <Link to={createPageUrl("Pricing")}
+              className="text-sm font-medium transition-colors hover:text-white"
+              style={{ color: SILVER }}>
+              Pricing
+            </Link>
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="text-sm font-medium transition-colors hover:text-white"
+              style={{ color: SILVER }}>
+              Sign In
+            </button>
+            <button onClick={() => base44.auth.redirectToLogin()}
+              className="px-5 py-2 rounded-lg text-sm font-bold text-black transition-all hover:scale-105"
+              style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
+              Start Free Trial
+            </button>
           </div>
         </div>
       </header>
