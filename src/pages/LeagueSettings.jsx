@@ -13,7 +13,7 @@ const PLAN_LABELS = { trial: "Trial", starter: "Starter", pro: "Pro", enterprise
 
 export default function LeagueSettings() {
   const [league, setLeague] = useState(null);
-  const [form, setForm] = useState({ name: "", city: "", logo_url: "" });
+  const [form, setForm] = useState({ name: "", city: "", logo_url: "", external_id: "", puckleague_sync_enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -26,7 +26,7 @@ export default function LeagueSettings() {
         const myLeague = leagues.find(l => l.id === u.league_id);
         if (myLeague) {
           setLeague(myLeague);
-          setForm({ name: myLeague.name || "", city: myLeague.city || "", logo_url: myLeague.logo_url || "" });
+          setForm({ name: myLeague.name || "", city: myLeague.city || "", logo_url: myLeague.logo_url || "", external_id: myLeague.external_id || "", puckleague_sync_enabled: myLeague.puckleague_sync_enabled || false });
         }
       }
       setLoading(false);
@@ -97,6 +97,25 @@ export default function LeagueSettings() {
           <input className={inputCls} placeholder="https://..." value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} />
           {form.logo_url && (
             <img src={form.logo_url} alt="Logo preview" className="mt-2 h-12 object-contain rounded" onError={e => e.target.style.display = "none"} />
+          )}
+        </div>
+        <div className="border-t border-gray-800 pt-4">
+          <div className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wide">Cross-Platform Sync</div>
+          <label className="text-xs text-gray-400 block mb-1">PuckLeague External ID</label>
+          <input className={inputCls} placeholder="Paste your PuckLeague league ID here to link platforms..."
+            value={form.external_id} onChange={e => setForm(f => ({ ...f, external_id: e.target.value }))} />
+          <p className="text-xs text-gray-600 mt-1">If you also use PuckLeague, paste the matching league ID from that platform. This allows future data sync between both systems.</p>
+          <label className="flex items-center gap-2 mt-3 cursor-pointer">
+            <input type="checkbox" checked={form.puckleague_sync_enabled}
+              onChange={e => setForm(f => ({ ...f, puckleague_sync_enabled: e.target.checked }))}
+              style={{ accentColor: "#d4af37" }} className="w-4 h-4" />
+            <span className="text-sm text-gray-300">Enable PuckLeague sync</span>
+          </label>
+          {form.puckleague_sync_enabled && !form.external_id && (
+            <p className="text-xs text-yellow-500 mt-1">⚠ Enter your PuckLeague ID above to activate sync.</p>
+          )}
+          {form.puckleague_sync_enabled && form.external_id && (
+            <p className="text-xs text-green-400 mt-1">✓ Platforms linked — sync ready.</p>
           )}
         </div>
         <div className="pt-2">
