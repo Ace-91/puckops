@@ -23,7 +23,7 @@ export default function LeagueManagement() {
   const [showForm, setShowForm] = useState(false);
   const [editingLeague, setEditingLeague] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ name: "", owner_email: "", owner_name: "", city: "", plan: "trial", status: "trial", notes: "" });
+  const [form, setForm] = useState({ name: "", owner_email: "", owner_name: "", city: "", plan: "trial", status: "trial", notes: "", external_id: "", puckleague_sync_enabled: false });
 
   const load = async () => {
     const [l, u] = await Promise.all([
@@ -70,7 +70,7 @@ export default function LeagueManagement() {
 
   const openEdit = (league) => {
     setEditingLeague(league);
-    setForm({ name: league.name, owner_email: league.owner_email || "", owner_name: league.owner_name || "", city: league.city || "", plan: league.plan || "trial", status: league.status || "trial", notes: league.notes || "" });
+    setForm({ name: league.name, owner_email: league.owner_email || "", owner_name: league.owner_name || "", city: league.city || "", plan: league.plan || "trial", status: league.status || "trial", notes: league.notes || "", external_id: league.external_id || "", puckleague_sync_enabled: league.puckleague_sync_enabled || false });
     setShowForm(true);
   };
 
@@ -150,6 +150,12 @@ export default function LeagueManagement() {
                     {league.trial_ends && league.status === "trial" && (
                       <span className="flex items-center gap-1 text-yellow-500">
                         <Calendar className="w-3 h-3" /> Trial ends {league.trial_ends}
+                      </span>
+                    )}
+                    {league.external_id && (
+                      <span className="flex items-center gap-1 text-blue-400 text-xs">
+                        🔗 Linked
+                        {league.puckleague_sync_enabled && <span className="text-green-400 ml-1">· Sync ON</span>}
                       </span>
                     )}
                   </div>
@@ -238,6 +244,17 @@ export default function LeagueManagement() {
               <div>
                 <label className="text-xs text-gray-400 block mb-1">Internal Notes</label>
                 <input className={inputCls} placeholder="Optional internal notes..." value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+              <div className="border-t border-gray-800 pt-3">
+                <div className="text-xs text-gray-500 mb-2 font-medium">Cross-Platform Sync</div>
+                <label className="text-xs text-gray-400 block mb-1">External / PuckLeague ID</label>
+                <input className={inputCls} placeholder="Paste matching ID from PuckLeague..." value={form.external_id} onChange={e => setForm(f => ({ ...f, external_id: e.target.value }))} />
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <input type="checkbox" checked={form.puckleague_sync_enabled}
+                    onChange={e => setForm(f => ({ ...f, puckleague_sync_enabled: e.target.checked }))}
+                    style={{ accentColor: "#d4af37" }} className="w-4 h-4" />
+                  <span className="text-xs text-gray-300">PuckLeague sync enabled</span>
+                </label>
               </div>
             </div>
             <div className="flex gap-3 mt-5">
