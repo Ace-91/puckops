@@ -2,6 +2,16 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+async function deleteSequentially(items, deleteFn, delayMs = 300) {
+  let count = 0;
+  for (const item of items) {
+    await deleteFn(item.id);
+    count++;
+    await sleep(delayMs);
+  }
+  return count;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -18,22 +28,12 @@ Deno.serve(async (req) => {
 
     if (target === 'games' || target === 'all') {
       const games = await base44.asServiceRole.entities.Game.list('date', 99999);
-      const CHUNK = 10;
-      for (let i = 0; i < games.length; i += CHUNK) {
-        await Promise.all(games.slice(i, i + CHUNK).map(g => base44.asServiceRole.entities.Game.delete(g.id)));
-        deletedGames += Math.min(CHUNK, games.length - i);
-        if (i + CHUNK < games.length) await sleep(800);
-      }
+      deletedGames = await deleteSequentially(games, (id) => base44.asServiceRole.entities.Game.delete(id), 250);
     }
 
     if (target === 'slots' || target === 'all') {
       const slots = await base44.asServiceRole.entities.IceSlot.list('date', 99999);
-      const CHUNK = 10;
-      for (let i = 0; i < slots.length; i += CHUNK) {
-        await Promise.all(slots.slice(i, i + CHUNK).map(s => base44.asServiceRole.entities.IceSlot.delete(s.id)));
-        deletedSlots += Math.min(CHUNK, slots.length - i);
-        if (i + CHUNK < slots.length) await sleep(800);
-      }
+      deletedSlots = await deleteSequentially(slots, (id) => base44.asServiceRole.entities.IceSlot.delete(id), 250);
     }
 
     return Response.json({ success: true, deletedGames, deletedSlots });
