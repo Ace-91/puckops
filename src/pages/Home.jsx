@@ -91,11 +91,7 @@ export default function Home() {
   }, []);
 
   const handleStartTrial = () => {
-    if (user) {
-      window.location.href = createPageUrl("Dashboard");
-    } else {
-      setShowTrialForm(true);
-    }
+    setShowTrialForm(true);
   };
 
   const handleTrialSubmit = async (e) => {
