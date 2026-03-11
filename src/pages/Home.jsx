@@ -273,7 +273,7 @@ export default function Home() {
           <h2 className="text-3xl font-bold text-white mb-3">Ready to manage your league?</h2>
           <p className="text-gray-400 mb-8">Start your 14-day free trial. No credit card required.</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => base44.auth.redirectToLogin()}
+            <button onClick={handleStartTrial}
               className="px-8 py-3.5 rounded-xl text-base font-bold text-black transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
               <Zap className="w-5 h-5 inline mr-2" />Start Free Trial
