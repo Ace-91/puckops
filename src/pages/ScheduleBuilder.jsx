@@ -280,22 +280,25 @@ export default function ScheduleBuilder() {
 
             const isLate = isLateCustom(slot.start_time);
 
-            // Order divisions by urgency (most remaining matchups first)
-            const divsByUrgency = activeDivIds
-              .filter(id => divDataMap[id].pendingMatchups.length > 0)
-              .sort((a, b) => {
-                const urgA = Math.max(...divDataMap[a].divTeams.map(t => {
-                  const last = divDataMap[a].teamLastDate[t.id];
-                  return last ? daysBetween(last, slot.date) : 999;
-                }));
-                const urgB = Math.max(...divDataMap[b].divTeams.map(t => {
-                  const last = divDataMap[b].teamLastDate[t.id];
-                  return last ? daysBetween(last, slot.date) : 999;
-                }));
-                return urgB - urgA;
-              });
+            // Use weighted rotation to decide which division gets this slot,
+            // falling back to any division still needing games if the rotated
+            // division has no viable matchup for this slot.
+            const eligibleDivs = activeDivIds.filter(id => divDataMap[id].pendingMatchups.length > 0);
+            if (eligibleDivs.length === 0) continue;
 
-            for (const divId of divsByUrgency) {
+            // Advance rotation to next div that still has matchups
+            let rotStart = rotationIdx;
+            while (!eligibleDivs.includes(rotationCycle[rotationIdx % rotationCycle.length])) {
+              rotationIdx++;
+              if (rotationIdx - rotStart > rotationCycle.length) break;
+            }
+            const rotatedDiv = rotationCycle[rotationIdx % rotationCycle.length];
+            rotationIdx++;
+
+            // Try rotated div first, then fall back to others
+            const divOrder = [rotatedDiv, ...eligibleDivs.filter(id => id !== rotatedDiv)];
+
+            for (const divId of divOrder) {
               const dd = divDataMap[divId];
               if (dd.pendingMatchups.length === 0) continue;
 
