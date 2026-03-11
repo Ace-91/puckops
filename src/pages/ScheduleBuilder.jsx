@@ -527,20 +527,22 @@ export default function ScheduleBuilder() {
     setSaveProgress({ current: 0, total: totalSteps, phase: "Saving games" });
 
     let created = 0;
-    const GAME_CHUNK = 20;
+    const GAME_CHUNK = 10;
     for (let i = 0; i < preview.length; i += GAME_CHUNK) {
       await base44.entities.Game.bulkCreate(preview.slice(i, i + GAME_CHUNK));
       created += Math.min(GAME_CHUNK, preview.length - i);
       setSaveProgress({ current: created, total: totalSteps, phase: "Saving games" });
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 1500));
     }
 
     let slotsDone = 0;
-    for (const id of slotIds) {
-      await base44.entities.IceSlot.update(id, { is_available: false });
-      slotsDone++;
+    const SLOT_CHUNK = 5;
+    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
+      const chunk = slotIds.slice(i, i + SLOT_CHUNK);
+      await Promise.all(chunk.map(id => base44.entities.IceSlot.update(id, { is_available: false })));
+      slotsDone += chunk.length;
       setSaveProgress({ current: preview.length + slotsDone, total: totalSteps, phase: "Updating ice slots" });
-      await new Promise(r => setTimeout(r, 250));
+      await new Promise(r => setTimeout(r, 1200));
     }
 
     setSaveProgress(null);
