@@ -82,6 +82,9 @@ const PLANS = [
 
 export default function Home() {
   const [user, setUser] = useState(null);
+  const [showTrialForm, setShowTrialForm] = useState(false);
+  const [formData, setFormData] = useState({ name: "", email: "", leagueName: "" });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -89,11 +92,37 @@ export default function Home() {
 
   const handleStartTrial = () => {
     if (user) {
-      // Already logged in, go to dashboard
       window.location.href = createPageUrl("Dashboard");
     } else {
-      // Not logged in, go to login
-      base44.auth.redirectToLogin();
+      setShowTrialForm(true);
+    }
+  };
+
+  const handleTrialSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name || !formData.email || !formData.leagueName) return;
+    
+    setLoading(true);
+    try {
+      // Invite user with the league name stored
+      await base44.users.inviteUser(formData.email, "admin");
+      // Create league for them
+      await base44.entities.League.create({
+        name: formData.leagueName,
+        owner_email: formData.email,
+        owner_name: formData.name,
+        status: "trial",
+        plan: "trial"
+      });
+      // Close form and show success
+      setShowTrialForm(false);
+      setFormData({ name: "", email: "", leagueName: "" });
+      alert("Invitation sent! Check your email to set your password and get started.");
+    } catch (error) {
+      console.error(error);
+      alert("Error starting trial. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
