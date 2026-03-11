@@ -316,6 +316,70 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Trial Registration Modal */}
+      {showTrialForm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full border" style={{ borderColor: "#333" }}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">Start Your Free Trial</h2>
+              <button onClick={() => setShowTrialForm(false)} className="text-gray-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleTrialSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-yellow-500 focus:outline-none"
+                  placeholder="John Doe"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-yellow-500 focus:outline-none"
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">League Name</label>
+                <input
+                  type="text"
+                  value={formData.leagueName}
+                  onChange={(e) => setFormData({ ...formData, leagueName: e.target.value })}
+                  className="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white placeholder-gray-500 focus:border-yellow-500 focus:outline-none"
+                  placeholder="My Hockey League"
+                  required
+                />
+              </div>
+              
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 rounded-lg text-base font-bold text-black transition-all hover:scale-105 disabled:opacity-50"
+                style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
+                {loading ? "Setting up..." : "Start Free Trial"}
+              </button>
+              
+              <p className="text-xs text-gray-500 text-center">
+                14-day free trial. No credit card required.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Footer — minimal, no nav */}
       <footer className="py-8 text-center border-t" style={{ borderColor: "#111", color: "#444" }}>
         <div className="flex items-center justify-center gap-2 mb-2">
