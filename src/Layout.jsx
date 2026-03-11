@@ -216,7 +216,7 @@ export default function Layout({ children, currentPageName }) {
       </main>
 
       <footer className="py-4 text-center text-xs border-t" style={{ background: "#0a0a0a", borderColor: "#1a1a1a", color: "#555" }}>
-        <span style={{ color: SILVER }}>Puck</span><span style={{ color: GOLD }}>Operations</span>
+        <span className="font-bold italic" style={{ color: GOLD, fontFamily: "Arial Black, Arial, sans-serif" }}>Puck</span><span className="font-bold italic" style={{ color: SILVER, fontFamily: "Arial Black, Arial, sans-serif" }}>Operations</span>
         <span className="ml-2">© 2026 — League Management Platform</span>
       </footer>
     </div>
