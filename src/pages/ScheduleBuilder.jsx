@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { useLeague } from "@/components/useLeague";
 import {
   Shuffle, AlertCircle, CheckCircle, Moon, Eye, Trash2,
   Loader2, AlertTriangle, ChevronDown, Plus, X, Calendar
@@ -11,6 +12,7 @@ const daysBetween = (d1, d2) =>
   Math.abs(new Date(d1 + "T12:00:00") - new Date(d2 + "T12:00:00")) / (1000 * 60 * 60 * 24);
 
 export default function ScheduleBuilder() {
+  const { leagueId } = useLeague();
   const [divisions, setDivisions] = useState([]);
   const [teams, setTeams] = useState([]);
   const [slots, setSlots] = useState([]);
@@ -53,12 +55,13 @@ export default function ScheduleBuilder() {
 
   useEffect(() => {
     const load = async () => {
+      const q = leagueId ? { league_id: leagueId } : {};
       const [d, t, s, b, g] = await Promise.all([
-        base44.entities.Division.list(),
-        base44.entities.Team.list(),
-        base44.entities.IceSlot.filter({ is_available: true }),
-        base44.entities.BlackoutDate.filter({ status: "approved" }),
-        base44.entities.Game.list("date", 3000),
+        base44.entities.Division.filter(q),
+        base44.entities.Team.filter(q),
+        base44.entities.IceSlot.filter({ ...q, is_available: true }),
+        base44.entities.BlackoutDate.filter({ ...q, status: "approved" }),
+        base44.entities.Game.filter(q, "date", 3000),
       ]);
       setDivisions(d);
       setTeams(t);
@@ -377,6 +380,7 @@ export default function ScheduleBuilder() {
               }
 
               scheduledGames.push({
+                league_id: leagueId || "",
                 season, division_id: divId, division_name: dd.division?.name,
                 home_team_id: home.id, home_team_name: home.name,
                 away_team_id: away.id, away_team_name: away.name,
@@ -575,7 +579,8 @@ export default function ScheduleBuilder() {
     setSaveProgress(null);
     setResult({ saved: true, count: preview.length });
     setPreview([]); setStats(null); setWarnings([]);
-    const g = await base44.entities.Game.list("date", 3000);
+    const q = leagueId ? { league_id: leagueId } : {};
+    const g = await base44.entities.Game.filter(q, "date", 3000);
     setExistingGames(g);
     setGenerating(false);
   };
