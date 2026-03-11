@@ -4,7 +4,7 @@ import { createPageUrl } from "@/utils";
 import { Link } from "react-router-dom";
 import {
   LogIn, UserPlus, Calendar, Shield, Users, Clock,
-  AlertTriangle, CheckCircle, ArrowRight, Zap, Star
+  AlertTriangle, CheckCircle, ArrowRight, Zap, Star, X
 } from "lucide-react";
 import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
