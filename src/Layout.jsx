@@ -76,6 +76,11 @@ export default function Layout({ children, currentPageName }) {
   const SILVER = "#c0c0c0";
   const GOLD = "#d4af37";
 
+  // Landing page manages its own full layout
+  if (currentPageName === "Home") {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen text-white flex flex-col" style={{ background: "#000000" }}>
       <style>{`
