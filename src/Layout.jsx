@@ -12,14 +12,14 @@ const navItems = [
   { label: "Home", page: "Home", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Schedule", page: "Schedule", icon: Calendar, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
-  { label: "My Portal", page: "OfficialPortal", icon: Shield, roles: ["referee", "timekeeper"] },
+  { label: "My Portal", page: "OfficialPortal", icon: Shield, roles: ["referee", "timekeeper"], exactRoles: true },
   { label: "Teams & Divisions", page: "TeamsAndDivisions", icon: Layers, roles: ["admin"] },
   { label: "Ice Slots & Arenas", page: "IceSlots", icon: Clock, roles: ["admin"] },
   { label: "Schedule Builder", page: "ScheduleBuilder", icon: Settings, roles: ["admin"] },
   { label: "Schedule Verify", page: "ScheduleVerification", icon: CheckCircle, roles: ["admin"] },
   { label: "Blackout Dates", page: "BlackoutDates", icon: AlertTriangle, roles: ["admin", "team_manager"] },
   { label: "Officials", page: "Officials", icon: Shield, roles: ["admin", "referee_coordinator"] },
-  { label: "Official Availability", page: "OfficialAvailability", icon: Calendar, roles: ["referee", "timekeeper"] },
+  { label: "Official Availability", page: "OfficialAvailability", icon: Calendar, roles: ["referee", "timekeeper"], exactRoles: true },
   { label: "Assign Officials", page: "AssignOfficials", icon: Users, roles: ["admin", "referee_coordinator"] },
   { label: "Forfeits", page: "Forfeits", icon: AlertTriangle, roles: ["admin", "referee_coordinator", "team_manager"] },
   { label: "Analytics", page: "Analytics", icon: TrendingUp, roles: ["admin"] },
@@ -54,7 +54,7 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const userRole = user?.role || "team_manager";
-  const visibleNav = navItems.filter(item => item.roles.includes(userRole) || userRole === "admin");
+  const visibleNav = navItems.filter(item => item.roles.includes(userRole) || (!item.exactRoles && userRole === "admin"));
 
   // Role-gate the current page
   const pageRequirements = PAGE_ROLE_REQUIREMENTS[currentPageName];

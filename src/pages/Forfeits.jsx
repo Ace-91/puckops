@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { AlertTriangle, Plus, X, Clock, CheckCircle, XCircle, Mail, Trophy, RefreshCw, Calendar } from "lucide-react";
+import { AlertTriangle, Plus, X, Clock, CheckCircle, XCircle, Mail, Trophy, RefreshCw, Calendar, Pencil, Trash2 } from "lucide-react";
 
 const STATUS_COLORS = {
   submitted: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
@@ -21,6 +21,8 @@ export default function Forfeits() {
   const [sending, setSending] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const [form, setForm] = useState({ team_id: "", game_id: "", reason: "" });
+  const [editingForfeit, setEditingForfeit] = useState(null);
+  const [editForfeitForm, setEditForfeitForm] = useState({});
 
   const reload = async () => {
     const [f, fr] = await Promise.all([
@@ -212,6 +214,32 @@ export default function Forfeits() {
     await reload();
   };
 
+  const deleteForfeit = async (forfeit) => {
+    if (!confirm(`Delete forfeit request from ${forfeit.submitted_by}?`)) return;
+    if (forfeit.game_id) {
+      await base44.entities.Game.update(forfeit.game_id, { status: "scheduled" }).catch(() => {});
+    }
+    const responses = forfeitResponses.filter(r => r.forfeit_id === forfeit.id);
+    for (const r of responses) {
+      await base44.entities.ForfeitResponse.delete(r.id).catch(() => {});
+    }
+    if (forfeit.submitted_by_email) {
+      await base44.integrations.Core.SendEmail({
+        to: forfeit.submitted_by_email,
+        subject: `Forfeit Request Cancelled – ${forfeit.division_name} – ${forfeit.game_date}`,
+        body: `Hello ${forfeit.submitted_by},\n\nYour forfeit request for the game on ${forfeit.game_date} at ${forfeit.game_time} (${forfeit.arena_name}) has been cancelled by the league administrator.\n\nThe game has been restored to scheduled status. If you still need to forfeit, please submit a new request.\n\nHockeyOps`,
+      }).catch(() => {});
+    }
+    await base44.entities.Forfeit.delete(forfeit.id);
+    await reload();
+  };
+
+  const saveEditForfeit = async () => {
+    await base44.entities.Forfeit.update(editingForfeit, editForfeitForm);
+    setEditingForfeit(null);
+    await reload();
+  };
+
   const myPendingResponses = forfeitResponses.filter(r =>
     r.response === "pending" && myTeams.some(t => t.id === r.team_id)
   );
@@ -361,6 +389,18 @@ export default function Forfeits() {
                     </div>
                   </div>
                 )}
+                {isAdmin && (
+                  <div className="border-t border-gray-800 pt-2 mt-2 flex gap-2 justify-end">
+                    <button onClick={() => { setEditingForfeit(forfeit.id); setEditForfeitForm({ status: forfeit.status, reason: forfeit.reason }); }}
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-gray-700 text-gray-400 hover:text-white hover:border-gray-600 transition-colors">
+                      <Pencil className="w-3 h-3" /> Edit
+                    </button>
+                    <button onClick={() => deleteForfeit(forfeit)}
+                      className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border border-red-700/40 text-red-400 hover:bg-red-500/10 transition-colors">
+                      <Trash2 className="w-3 h-3" /> Delete
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -370,6 +410,40 @@ export default function Forfeits() {
               <p>No forfeits reported.</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit Forfeit Modal */}
+      {editingForfeit && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1e2533] rounded-xl border border-gray-700 p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-white">Edit Forfeit</h2>
+              <button onClick={() => setEditingForfeit(null)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Status</label>
+                <select className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+                  value={editForfeitForm.status} onChange={e => setEditForfeitForm(f => ({ ...f, status: e.target.value }))}>
+                  <option value="submitted">Submitted</option>
+                  <option value="notified">Notified (seeking replacement)</option>
+                  <option value="replacement_found">Replacement Found</option>
+                  <option value="no_replacement">No Replacement Found</option>
+                  <option value="confirmed_forfeit">Confirmed Forfeit</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">Reason</label>
+                <textarea className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm h-24 resize-none focus:outline-none"
+                  value={editForfeitForm.reason} onChange={e => setEditForfeitForm(f => ({ ...f, reason: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setEditingForfeit(null)} className="flex-1 py-2 border border-gray-600 rounded-lg text-gray-300 text-sm">Cancel</button>
+              <button onClick={saveEditForfeit} className="flex-1 py-2 rounded-lg text-black text-sm font-medium" style={{ background: "#d4af37" }}>Save Changes</button>
+            </div>
+          </div>
         </div>
       )}
 

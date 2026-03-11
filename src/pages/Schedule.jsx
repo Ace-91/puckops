@@ -90,7 +90,9 @@ export default function Schedule() {
       ids,
       id => base44.entities.Game.delete(id),
       (current, total) => setProgress({ title, current, total }),
-      cancelRef
+      cancelRef,
+      1,
+      400
     );
     setProgress(null);
   };

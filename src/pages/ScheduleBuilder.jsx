@@ -48,6 +48,8 @@ export default function ScheduleBuilder() {
   });
 
   const [saveProgress, setSaveProgress] = useState(null);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -519,35 +521,62 @@ export default function ScheduleBuilder() {
     }, 100);
   };
 
-  const saveSchedule = async () => {
+  const handleSaveClick = () => {
     if (!preview.length) return;
-    setGenerating(true);
-    const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
-    const totalSteps = preview.length + slotIds.length;
-    setSaveProgress({ current: 0, total: totalSteps, phase: "Saving games" });
+    const divGames = existingGames.filter(g => selectedDivIds.includes(g.division_id));
+    if (divGames.length > 0) {
+      const previewDates = new Set(preview.map(g => g.date));
+      const conflictDates = [...new Set(
+        divGames.filter(g => previewDates.has(g.date)).map(g => g.date)
+      )].sort().slice(0, 8);
+      setConflictInfo({ existingCount: divGames.length, conflictDates });
+      setShowSaveModal(true);
+    } else {
+      saveSchedule('merge');
+    }
+  };
 
-    let created = 0;
-    const GAME_CHUNK = 10;
-    for (let i = 0; i < preview.length; i += GAME_CHUNK) {
-      await base44.entities.Game.bulkCreate(preview.slice(i, i + GAME_CHUNK));
-      created += Math.min(GAME_CHUNK, preview.length - i);
-      setSaveProgress({ current: created, total: totalSteps, phase: "Saving games" });
-      await new Promise(r => setTimeout(r, 1500));
+  const saveSchedule = async (mode = 'merge') => {
+    if (!preview.length) return;
+    setShowSaveModal(false);
+    setGenerating(true);
+
+    if (mode === 'overwrite') {
+      const toDelete = existingGames.filter(g => selectedDivIds.includes(g.division_id));
+      const slotIdsToRestore = [...new Set(toDelete.map(g => g.ice_slot_id).filter(Boolean))];
+      setSaveProgress({ current: 0, total: toDelete.length, phase: "Removing existing games" });
+      for (let i = 0; i < toDelete.length; i++) {
+        await base44.entities.Game.delete(toDelete[i].id);
+        setSaveProgress({ current: i + 1, total: toDelete.length, phase: "Removing existing games" });
+        await new Promise(r => setTimeout(r, 250));
+      }
+      for (const id of slotIdsToRestore) {
+        await base44.entities.IceSlot.update(id, { is_available: true });
+        await new Promise(r => setTimeout(r, 150));
+      }
     }
 
-    let slotsDone = 0;
-    const SLOT_CHUNK = 5;
-    for (let i = 0; i < slotIds.length; i += SLOT_CHUNK) {
-      const chunk = slotIds.slice(i, i + SLOT_CHUNK);
-      await Promise.all(chunk.map(id => base44.entities.IceSlot.update(id, { is_available: false })));
-      slotsDone += chunk.length;
-      setSaveProgress({ current: preview.length + slotsDone, total: totalSteps, phase: "Updating ice slots" });
-      await new Promise(r => setTimeout(r, 1200));
+    const slotIds = [...new Set(preview.map(g => g.ice_slot_id).filter(Boolean))];
+    const total = preview.length + slotIds.length;
+    setSaveProgress({ current: 0, total, phase: "Saving games" });
+
+    for (let i = 0; i < preview.length; i++) {
+      await base44.entities.Game.create(preview[i]);
+      setSaveProgress({ current: i + 1, total, phase: "Saving games" });
+      await new Promise(r => setTimeout(r, 250));
+    }
+
+    for (let i = 0; i < slotIds.length; i++) {
+      await base44.entities.IceSlot.update(slotIds[i], { is_available: false });
+      setSaveProgress({ current: preview.length + i + 1, total, phase: "Updating ice slots" });
+      await new Promise(r => setTimeout(r, 150));
     }
 
     setSaveProgress(null);
     setResult({ saved: true, count: preview.length });
     setPreview([]); setStats(null); setWarnings([]);
+    const g = await base44.entities.Game.list("date", 3000);
+    setExistingGames(g);
     setGenerating(false);
   };
 
@@ -958,7 +987,7 @@ export default function ScheduleBuilder() {
             {generating && !saveProgress ? "Generating..." : `Generate Schedule${selectedDivIds.length > 1 ? ` (${selectedDivIds.length} divs)` : ""}`}
           </button>
           {result?.success && preview.length > 0 && (
-            <button onClick={saveSchedule} disabled={generating}
+            <button onClick={handleSaveClick} disabled={generating}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-medium text-sm disabled:opacity-50 text-black transition-colors"
               style={{ background: "#d4af37" }}>
               {generating && saveProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
@@ -967,6 +996,39 @@ export default function ScheduleBuilder() {
           )}
         </div>
       </div>
+
+      {/* Save Mode Modal */}
+      {showSaveModal && conflictInfo && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="rounded-2xl border p-6 w-full max-w-md" style={{ background: "#111", borderColor: "#333" }}>
+            <h2 className="text-lg font-bold text-white mb-2">Existing Games Found</h2>
+            <p className="text-gray-400 text-sm mb-3">
+              {conflictInfo.existingCount} existing game{conflictInfo.existingCount !== 1 ? "s" : ""} found for the selected division{selectedDivIds.length > 1 ? "s" : ""}.
+            </p>
+            {conflictInfo.conflictDates.length > 0 && (
+              <div className="rounded-lg p-3 mb-4 border border-yellow-500/20" style={{ background: "rgba(212,175,55,0.05)" }}>
+                <p className="text-xs text-yellow-400 font-medium mb-1">Conflicting dates ({conflictInfo.conflictDates.length}{conflictInfo.conflictDates.length === 8 ? "+" : ""}):</p>
+                <p className="text-xs text-yellow-300">{conflictInfo.conflictDates.join(", ")}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <button onClick={() => saveSchedule('overwrite')}
+                className="w-full py-2.5 rounded-lg text-sm font-medium text-white border border-red-700/40 bg-red-500/20 hover:bg-red-500/30 transition-colors">
+                Overwrite — Delete {conflictInfo.existingCount} existing, save {preview.length} new
+              </button>
+              <button onClick={() => saveSchedule('merge')}
+                className="w-full py-2.5 rounded-lg text-sm font-medium text-black transition-colors"
+                style={{ background: "#d4af37" }}>
+                Merge — Add {preview.length} new games alongside existing
+              </button>
+              <button onClick={() => setShowSaveModal(false)}
+                className="w-full py-2.5 rounded-lg text-sm border border-gray-700 text-gray-400 hover:text-gray-300 transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
