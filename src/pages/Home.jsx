@@ -87,6 +87,16 @@ export default function Home() {
     base44.auth.me().then(setUser).catch(() => {});
   }, []);
 
+  const handleStartTrial = () => {
+    if (user) {
+      // Already logged in, go to dashboard
+      window.location.href = createPageUrl("Dashboard");
+    } else {
+      // Not logged in, go to login
+      base44.auth.redirectToLogin();
+    }
+  };
+
   return (
     <div className="min-h-screen" style={{ background: "#000" }}>
 
