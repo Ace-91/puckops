@@ -82,62 +82,20 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Top nav */}
       <header style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a" }} className="sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+        {/* Row 1: Logo + User */}
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14 border-b" style={{ borderColor: "#1a1a1a" }}>
           <div className="flex items-center gap-3">
             <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
             <Link to={createPageUrl("Home")} className="flex items-center gap-2.5">
-              <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a90e8dc98ea5930930f242/4fc17f271_ChatGPTImageMar9202611_27_17PM.png" alt="PuckOperations Logo" style={{ width: 56, height: 56, objectFit: "contain" }} />
+              <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a90e8dc98ea5930930f242/4fc17f271_ChatGPTImageMar9202611_27_17PM.png" alt="PuckOperations Logo" style={{ width: 48, height: 48, objectFit: "contain" }} />
               <div className="hidden sm:block">
                 <span className="font-bold text-lg" style={{ color: SILVER }}>Puck</span>
                 <span className="font-bold text-lg" style={{ color: GOLD }}>Operations</span>
               </div>
             </Link>
           </div>
-
-          <nav className="hidden lg:flex items-center gap-0.5">
-            {visibleNav.slice(0, 6).map(item => (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm transition-colors"
-                style={currentPageName === item.page
-                  ? { color: GOLD, background: "rgba(212,175,55,0.1)" }
-                  : { color: "#999", hover: "color: white" }}
-                onMouseEnter={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "white"; }}
-                onMouseLeave={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "#999"; }}
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </Link>
-            ))}
-            {visibleNav.length > 6 && (
-              <div className="relative">
-                <button
-                  onClick={() => setMoreOpen(!moreOpen)}
-                  className="flex items-center gap-1 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                >
-                  More <ChevronDown className="w-3 h-3" />
-                </button>
-                {moreOpen && (
-                  <div className="absolute right-0 top-full mt-1 rounded-lg shadow-2xl w-52 py-1 z-50 border" style={{ background: "#111", borderColor: "#2a2a2a" }}>
-                    {visibleNav.slice(6).map(item => (
-                      <Link
-                        key={item.page}
-                        to={createPageUrl(item.page)}
-                        onClick={() => setMoreOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
-                      >
-                        <item.icon className="w-4 h-4" />
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
 
           <div className="flex items-center gap-3">
             {user ? (
@@ -164,6 +122,52 @@ export default function Layout({ children, currentPageName }) {
               </button>
             )}
           </div>
+        </div>
+
+        {/* Row 2: Navigation */}
+        <div className="hidden lg:block max-w-7xl mx-auto px-4">
+          <nav className="flex items-center gap-0.5 py-1">
+            {visibleNav.slice(0, 8).map(item => (
+              <Link
+                key={item.page}
+                to={createPageUrl(item.page)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                style={currentPageName === item.page
+                  ? { color: GOLD, background: "rgba(212,175,55,0.1)" }
+                  : { color: "#999" }}
+                onMouseEnter={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "white"; }}
+                onMouseLeave={e => { if (currentPageName !== item.page) e.currentTarget.style.color = "#999"; }}
+              >
+                <item.icon className="w-4 h-4" />
+                {item.label}
+              </Link>
+            ))}
+            {visibleNav.length > 8 && (
+              <div className="relative">
+                <button
+                  onClick={() => setMoreOpen(!moreOpen)}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  More <ChevronDown className="w-3 h-3" />
+                </button>
+                {moreOpen && (
+                  <div className="absolute left-0 top-full mt-1 rounded-lg shadow-2xl w-52 py-1 z-50 border" style={{ background: "#111", borderColor: "#2a2a2a" }}>
+                    {visibleNav.slice(8).map(item => (
+                      <Link
+                        key={item.page}
+                        to={createPageUrl(item.page)}
+                        onClick={() => setMoreOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
+                      >
+                        <item.icon className="w-4 h-4" />
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </nav>
         </div>
       </header>
 
