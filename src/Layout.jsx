@@ -100,11 +100,10 @@ export default function Layout({ children, currentPageName }) {
             <button className="lg:hidden text-gray-400 hover:text-white" onClick={() => setMenuOpen(!menuOpen)}>
               {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Link to={createPageUrl("Home")} className="flex items-center gap-2.5">
-              <img src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/69a90e8dc98ea5930930f242/4fc17f271_ChatGPTImageMar9202611_27_17PM.png" alt="PuckOperations Logo" style={{ width: 48, height: 48, objectFit: "contain" }} />
+            <Link to={createPageUrl("Home")} className="flex items-center gap-2">
+              <HockeyOpsLogo size={44} />
               <div className="hidden sm:block">
-                <span className="font-bold text-lg" style={{ color: SILVER }}>Puck</span>
-                <span className="font-bold text-lg" style={{ color: GOLD }}>Operations</span>
+                <span className="font-bold italic text-xl" style={{ color: GOLD, fontFamily: "Arial Black, Arial, sans-serif", letterSpacing: "-0.5px" }}>Puck</span><span className="font-bold italic text-xl" style={{ color: SILVER, fontFamily: "Arial Black, Arial, sans-serif", letterSpacing: "-0.5px" }}>Operations</span>
               </div>
             </Link>
           </div>
