@@ -170,7 +170,7 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={() => base44.auth.redirectToLogin()}
+            <button onClick={handleStartTrial}
               className="px-10 py-4 rounded-xl text-lg font-bold text-black transition-all hover:scale-105"
               style={{ background: `linear-gradient(135deg, ${GOLD}, #b8960f)` }}>
               Start Free Trial <ArrowRight className="w-5 h-5 inline ml-2" />
