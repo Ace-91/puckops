@@ -101,13 +101,13 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-3">
             <Link to={createPageUrl("Pricing")}
-              className="text-sm font-medium transition-colors hover:text-white"
-              style={{ color: SILVER }}>
+              className="px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:bg-white/5"
+              style={{ borderColor: "#333", color: SILVER }}>
               Pricing
             </Link>
             <button onClick={() => base44.auth.redirectToLogin()}
-              className="text-sm font-medium transition-colors hover:text-white"
-              style={{ color: SILVER }}>
+              className="px-4 py-2 rounded-lg text-sm font-medium border transition-all hover:bg-white/5"
+              style={{ borderColor: "#333", color: SILVER }}>
               Sign In
             </button>
             <button onClick={() => base44.auth.redirectToLogin()}

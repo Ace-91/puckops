@@ -52,12 +52,14 @@ import AssignOfficials from './pages/AssignOfficials';
 import BlackoutDates from './pages/BlackoutDates';
 import Dashboard from './pages/Dashboard';
 import Forfeits from './pages/Forfeits';
+import Home from './pages/Home';
 import IceSlots from './pages/IceSlots';
 import LeagueManagement from './pages/LeagueManagement';
 import LeagueSettings from './pages/LeagueSettings';
 import OfficialAvailability from './pages/OfficialAvailability';
 import OfficialPortal from './pages/OfficialPortal';
 import Officials from './pages/Officials';
+import Pricing from './pages/Pricing';
 import PublicBlackoutForm from './pages/PublicBlackoutForm';
 import PublicData from './pages/PublicData';
 import PublicForfeitForm from './pages/PublicForfeitForm';
@@ -66,8 +68,6 @@ import ScheduleBuilder from './pages/ScheduleBuilder';
 import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import Home from './pages/Home';
-import Pricing from './pages/Pricing';
 import __Layout from './Layout.jsx';
 
 
@@ -77,12 +77,14 @@ export const PAGES = {
     "BlackoutDates": BlackoutDates,
     "Dashboard": Dashboard,
     "Forfeits": Forfeits,
+    "Home": Home,
     "IceSlots": IceSlots,
     "LeagueManagement": LeagueManagement,
     "LeagueSettings": LeagueSettings,
     "OfficialAvailability": OfficialAvailability,
     "OfficialPortal": OfficialPortal,
     "Officials": Officials,
+    "Pricing": Pricing,
     "PublicBlackoutForm": PublicBlackoutForm,
     "PublicData": PublicData,
     "PublicForfeitForm": PublicForfeitForm,
@@ -91,8 +93,6 @@ export const PAGES = {
     "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "Home": Home,
-    "Pricing": Pricing,
 }
 
 export const pagesConfig = {
