@@ -117,9 +117,8 @@ export default function Schedule() {
 
   const deleteAllGames = async () => {
     setShowDeleteAllConfirm(false);
-    setProgress({ title: "Clearing all games...", current: 0, total: 1 });
-    const res = await base44.functions.invoke('clearScheduleData', { target: 'games' });
-    setProgress(null);
+    const ids = games.map(g => g.id);
+    await runDelete(ids, "Clearing all games");
     setGames([]);
     setSelectedIds(new Set());
   };
