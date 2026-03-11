@@ -4,11 +4,14 @@ import { createPageUrl } from "@/utils";
 import { base44 } from "@/api/base44Client";
 import {
   Calendar, Users, Shield, Clock, AlertTriangle, Home,
-  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard, TrendingUp, Lock, CheckCircle
+  Menu, X, ChevronDown, LogOut, Settings, Layers, LayoutDashboard, TrendingUp, Lock, CheckCircle, Crown, Building2
 } from "lucide-react";
 import HockeyOpsLogo from "@/components/HockeyOpsLogo";
 
 const navItems = [
+  // Super admin only
+  { label: "Leagues", page: "LeagueManagement", icon: Crown, roles: ["super_admin"], superOnly: true },
+  // League-scoped nav
   { label: "Home", page: "Home", icon: Home, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Dashboard", page: "Dashboard", icon: LayoutDashboard, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
   { label: "Schedule", page: "Schedule", icon: Calendar, roles: ["admin", "referee_coordinator", "team_manager", "referee", "timekeeper"] },
@@ -23,12 +26,14 @@ const navItems = [
   { label: "Assign Officials", page: "AssignOfficials", icon: Users, roles: ["admin", "referee_coordinator"] },
   { label: "Forfeits", page: "Forfeits", icon: AlertTriangle, roles: ["admin", "referee_coordinator", "team_manager"] },
   { label: "Analytics", page: "Analytics", icon: TrendingUp, roles: ["admin"] },
+  { label: "League Settings", page: "LeagueSettings", icon: Building2, roles: ["admin"] },
   { label: "User Management", page: "UserManagement", icon: Users, roles: ["admin"] },
   { label: "Public Data Feed", page: "PublicData", icon: TrendingUp, roles: ["admin"] },
 ];
 
 // Pages that require a specific role — anyone else sees an access-denied screen
 const PAGE_ROLE_REQUIREMENTS = {
+  LeagueManagement: ["super_admin"],
   TeamsAndDivisions: ["admin"],
   IceSlots: ["admin"],
   ScheduleBuilder: ["admin"],
@@ -37,6 +42,7 @@ const PAGE_ROLE_REQUIREMENTS = {
   Officials: ["admin", "referee_coordinator"],
   UserManagement: ["admin"],
   Analytics: ["admin"],
+  LeagueSettings: ["admin"],
   OfficialPortal: ["referee", "timekeeper"],
   OfficialAvailability: ["referee", "timekeeper"],
   BlackoutDates: ["admin", "team_manager"],
@@ -54,11 +60,17 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   const userRole = user?.role || "team_manager";
-  const visibleNav = navItems.filter(item => item.roles.includes(userRole) || (!item.exactRoles && userRole === "admin"));
+  const isSuperAdmin = userRole === "super_admin";
+  const visibleNav = navItems.filter(item => {
+    if (item.superOnly) return isSuperAdmin;
+    if (isSuperAdmin) return false; // super admin only sees league management
+    if (item.exactRoles) return item.roles.includes(userRole);
+    return item.roles.includes(userRole) || userRole === "admin";
+  });
 
   // Role-gate the current page
   const pageRequirements = PAGE_ROLE_REQUIREMENTS[currentPageName];
-  const isAccessDenied = user !== null && pageRequirements && !pageRequirements.includes(userRole) && userRole !== "admin";
+  const isAccessDenied = user !== null && pageRequirements && !pageRequirements.includes(userRole) && !isSuperAdmin;
 
   // Silver/gold theme colours
   const SILVER = "#c0c0c0";
