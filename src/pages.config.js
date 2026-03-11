@@ -66,7 +66,6 @@ import ScheduleBuilder from './pages/ScheduleBuilder';
 import ScheduleVerification from './pages/ScheduleVerification';
 import TeamsAndDivisions from './pages/TeamsAndDivisions';
 import UserManagement from './pages/UserManagement';
-import Pricing from './pages/Pricing';
 import __Layout from './Layout.jsx';
 
 
@@ -90,7 +89,6 @@ export const PAGES = {
     "ScheduleVerification": ScheduleVerification,
     "TeamsAndDivisions": TeamsAndDivisions,
     "UserManagement": UserManagement,
-    "Pricing": Pricing,
 }
 
 export const pagesConfig = {
